@@ -1,0 +1,35 @@
+.common_dialog {
+    display:none;
+    border-color:#FFFFFF;
+    border-width:0px;
+    border-style:solid;
+    text-align:left;
+    font-size:.9em;
+    margin:0px;
+}
+.ui-dialog .ui-dialog-titlebar {
+	padding:0px;
+	text-align:center;
+}
+.ui-dialog .ui-dialog-buttonpane {
+    text-align:center;
+    margin-top:0em;
+    padding:0em;
+}
+.ui-dialog .ui-dialog-buttonpane .ui-dialog-buttonset {
+    float:none;
+}
+.ui-dialog .ui-dialog-buttonpane button {
+    margin:.2em;
+}
+.ui-dialog .ui-dialog-title {
+    float:none;
+	font-size:1.1em;
+}
+.ui-dialog .ui-dialog-content {
+    background:#fff;
+}
+.ui-button-text-icon-primary .ui-button-text, .ui-button-text-icons .ui-button-text {
+    font-size:.9em;
+    padding:.2em 1em .2em 2.1em;
+}

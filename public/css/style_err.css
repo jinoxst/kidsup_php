@@ -1,0 +1,28 @@
+div#err div#closed{
+	width: 1120px;
+	padding:20px;
+	background:#345;
+	border-radius:20px;
+	text-align:left;
+	color:#fff;
+	overflow-x: auto;
+
+}
+div#err div#closed,
+div#err div#closed a{
+	font-size:16px;
+}
+div#err div#closed a{
+	color:#ff0;
+	font-weight:bold;
+}
+div#err div#closed h2{
+	margin-bottom:20px;
+}
+div#err div#closed h2,h3,pre,p{
+	color:#fff;
+}
+
+div#err div#closed p b{
+	color:#fff;
+}

@@ -1,0 +1,366 @@
+*{
+	margin: 0;
+	padding: 0;
+	font-family: "Segoe UI", "Meiryo", sans-serif;
+	color: #424040;
+	text-align: justify;
+	font-size:12px;
+}
+
+body{
+	background: #eee;
+}
+
+#wrap{
+	padding:25px;
+}
+header{
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 50px;
+	padding: 10px 25px;
+	background: rgba(0,0,0,0.7);
+}
+div.header{
+	padding: 60px 0 10px;
+	background: url(../img/bg_header.jpg);
+	overflow: hidden;
+}
+.wrap_inner{
+	margin: 60px auto 0; 
+	max-width: 600px;
+}
+div.header .wrap_inner h1,
+div.header .wrap_inner h2{
+	text-align: center;
+	color: #fff;
+}
+div.header .wrap_inner div{
+	width: 360px;
+	margin: 0 auto;
+	text-align: left;
+	color: #fff;
+}
+h1{
+	font-size:36px;
+}
+h2{
+	font-size:24px;
+}
+h3{
+	font-size: 24px;
+	font-weight: bold;
+	margin-bottom: 10px;
+	padding-bottom: 5px;
+	border-bottom: 3px #444 solid;
+}
+h4{
+	font-size: 20px;
+	font-weight: bold;
+	color: #666;
+	margin: 30px 0 10px 10px;
+}
+h5{
+	font-size: 16px;
+	border-bottom: 2px #bbb solid;
+	padding-bottom: 5px;
+	margin-bottom: 5px;
+}
+h6{
+	font-size: 14px;
+	margin-bottom: 5px;
+	font-weight: normal;
+}
+div.answer{
+	background: #ddd;
+	padding: 10px;
+	border-radius:10px;
+	overflow: hidden;
+	z-index: 1;
+}
+a.close{
+	display: block;
+	float: right;
+	background:#bbb;
+	border-radius: 10px;
+	overflow: hidden;
+	padding: 1px 10px;
+	z-index: 10;
+	text-decoration: none;
+}
+section h6{
+	margin-top: 20px;
+}
+section h6 span{
+	font-size:10px;
+	vertical-align: baseline;
+	color:#888;
+}
+section h6:first-child{
+	margin-top: 0px;
+}
+section .question{
+	border:2px #ddd solid;
+	border-bottom: none;
+	padding:5px;
+}
+section .question:first-child{
+	border-radius:10px 10px 0 0;
+}
+section .question:last-child{
+	border-radius:0 0 10px 10px;
+	border-bottom:2px #ddd solid;
+}
+.left,
+.right{
+	width: 300px !important;
+	margin-bottom: 20px;
+}
+.left{
+	float:left;
+}
+.right{
+	float:right;
+}
+.right td{
+	vertical-align: top;
+}
+.right td:last-child{
+	padding:0 0 10px 10px;
+}
+div.header .left,
+div.header .right{
+	position: relative;
+	display: block;
+	margin-top: 20px;
+	width: 140px !important;
+	height: 42px;
+}
+div.header .left p,
+div.header .right p{
+	position: absolute;
+	top: 20px;
+	left:50px;
+	color:#fff;
+	font-weight: bold;
+	text-align: center;
+}
+div.header .left{
+	margin-left: 100px;
+	background: url(../img/btn_apple_download.jpg) 0 0 no-repeat;
+	background-size: contain;
+}
+div.header .right{
+	margin-right: 100px;
+	background: url(../img/btn_google_download.jpg) 0 0 no-repeat;
+	background-size: contain;
+}
+#wrap.form div.title{
+	font-size:24px;
+	border-bottom:1px #444 solid;
+	margin-bottom:20px;
+	font-weight:bold;
+}
+input[type=radio]{
+	margin:0 5px 0 15px;
+	vertical-align:middle;
+}
+input[type=radio]:first-child{
+	margin:0 5px;
+}
+input[type=text],input[type=email],textarea{
+	width:100%;
+	padding:4px;
+	border:1px #ddd solid;
+}
+input[name=tel_1],input[name=tel_2],input[name=tel_3],
+input[name=tel_reporter_1],input[name=tel_reporter_2],input[name=tel_reporter_3]{
+	width:70px;
+}
+input[name=post_number]{
+	width:130px;
+}
+input[name=search]{
+	width:60px;
+	height: 27px;
+	background:#444;
+	color:#fff;
+	padding:4px 0;
+	border:none;
+	text-align: center;
+}
+textarea{
+	height:100px;
+	margin:0 0 30px;
+}
+.to_confirm,.to_back{
+	display:inline-block;
+	float:left;
+	width:30%;
+	height:50px;
+	margin:0 10% 30px;
+	text-align:center;
+	background:#444;
+	color:#fff;
+	border:none;
+	vertical-align:middle;
+	line-height:3;
+	border-radius:4px;
+	text-decoration: none;
+}
+.to_back{
+	float:right;
+	line-height:4;
+}
+div.left img{
+	width: 100%;
+}
+div.bottom{
+	width: 100%;
+	overflow: hidden;
+	clear: both;
+}
+div.bottom div.left,
+div.bottom div.center,
+div.bottom div.right{
+	float: left !important;
+	width:190px !important;
+	margin:10px 0 20px;
+}
+
+div.bottom img{
+	width: 100%;
+}
+div.bottom p{
+	text-align: center;
+}
+div.bottom div.center{
+	margin:10px 15px 20px;
+}
+
+footer{
+	float: left;
+	width: 100%;
+	background: #444;
+	overflow: hidden;
+}
+footer *{
+	color: #fff;
+}
+footer address{
+	width: 160px;
+	float: left;
+	margin: 15px 0 15px 25px;
+	font-style: normal;
+	font-weight: bold;
+}
+footer div{
+	width: 160px;
+	float: right;
+	margin:15px 25px 15px 0;
+}
+
+/* for desktop */
+
+@media only screen and (min-width: 768px) {
+	div.left img{
+		width: 280px !important;
+	}
+	div.bottom div.left img{
+		width: 100% !important;
+	}
+	.land{
+		display: none !important;
+	}
+	.port{
+		display: block !important;
+	}
+}
+
+/* for tablet */
+
+@media only screen and (max-width: 767px) and (min-width: 380px) {
+	div.header .left{
+		margin-left: 30px;
+	}
+	div.header .right{
+		margin-right: 30px;
+	}
+	div.left,
+	div.right{
+		float: none;
+		clear: both;
+		width: 300px;
+		margin: 20px auto 0;
+	}
+	div.bottom{
+		width: 300px;
+		margin: 0 auto;
+	}
+	div.bottom div.left,
+	div.bottom div.center,
+	div.bottom div.right{
+		float: none;
+		clear: both;
+		width: 100% !important;
+		margin: 20px auto 0;
+	}
+	img.land{
+		width: 100%;
+		float: none;
+		display: block !important;
+		clear: both;
+		margin: 10px auto;
+	}
+	img.port{
+		display: none !important;
+	}
+}
+
+/* for smartphone */
+
+@media only screen and (max-width: 379px) {
+	div.header .left,
+	div.header .right{
+		float: none;
+		margin:20px auto 0;
+		clear: both;
+	}
+	div.left,
+	div.right{
+		float: none;
+		clear: both;
+		width: 100% !important;
+	}
+	.header .wrap_inner div{
+		width: 80% !important;
+		padding: 0 20px;
+	}
+	div.bottom div.left,
+	div.bottom div.center,
+	div.bottom div.right{
+		float: none;
+		clear: both;
+		width: 100% !important;
+		margin: 20px auto 0;
+	}
+	img.land{
+		width: 100%;
+		float: none;
+		display: block !important;
+		clear: both;
+		margin: 10px auto;
+	}
+	img.port{
+		display: none !important;
+	}
+	footer address,
+	footer div{
+		width: 100%;
+		float: none;
+		text-align: center;
+		margin: 10px auto;
+	}
+}

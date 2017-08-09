@@ -1,0 +1,44 @@
+@charset 'UTF-8';
+* {
+	font-family: "Segoe UI", Meiryo, sans-serif;
+	font-size: 14px;
+	line-height: 1.5;
+	margin: 0;
+	padding: 0;
+}
+html, body{
+	width: 100%;
+	height: 100%;
+}
+body {
+	position: relative;
+	overflow-x: hidden;
+}
+body table#base {
+	width: 100%;
+	height: 100%;
+}
+div#outterwrap {
+	margin: 0 auto;
+	padding: 30px;
+}
+div#innerwrap {
+	padding: 20px;
+	border-radius:20px;
+	background:rgba(255,255,255,0.5);
+	overflow:hidden;
+}
+div#main {
+	border-radius:20px;
+	text-align:center;
+}
+div#contents{
+	position:relative;
+	background:#fff;
+	padding:10px 20px;
+	border-radius:20px;
+	text-align: left;
+}
+div#btn {
+	margin: 10px auto;
+}
