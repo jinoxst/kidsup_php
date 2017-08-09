@@ -1,0 +1,106 @@
+<style>
+table#tb_chgpwform td:nth-child(2) select:nth-child(1){
+    border:1px #abc solid;
+    width:250px;
+    float: left;
+}
+div.btn_area{
+    width:250px;
+}
+.kids_td {
+    width:33%;
+    padding:3px 5px;
+    border-top:1px #abc solid;
+    border-right:1px #abc solid;
+    border-bottom:1px #abc solid;
+    border-left:1px #abc solid;
+}
+textarea {
+    resize: vertical;
+}
+#warn_msg {
+    margin-top: 10px;
+    color: red;
+    font-size: 0.8em;
+}
+.kids_table{
+    background-color:#e0ecfe;
+}
+</style>
+<script>
+$(function(){
+    var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
+    elems.forEach(function(html) {
+        var switchery = new Switchery(html);
+    });
+    $('.js-check-change').change(function(){
+        $.ajax({
+            url: '/setting/setpushreceiveyn',
+            type: 'GET',
+            dataType: 'json',
+            data: {
+                push_key:$(this).attr('data-item'),
+                push_value:$(this)[0].checked ? '1' : '0'
+            },
+            beforeSend: function(xhr){
+                xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+            },
+            error: function(xhr, status, e){
+                console.log(xhr);
+                console.log(status);
+                console.log(e);
+                showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+            },
+            success: function(d){
+                console.log(d);
+                if(d.status == _SEAR_){
+                    showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                }else{
+                    if(d.status == '0'){
+                        showInfoMessage(300,'プッシュ通知設定を変更しました。',2000,'slow');
+                    }else{
+                        showCommonAlertDialog('エラー',d.message);
+                    }
+                }
+            },
+            complete: function(){}
+        });
+    });
+
+    $('.kids_table td').css({'border-bottom':'none'});
+});
+</script>
+<h2>プッシュ通知設定<span>スマートフォンのプッシュ通知の設定を行います。</span></h2>
+<table>
+    <tr>
+        <td style='background-color:#f7fed8' width='250px'>連絡帳</td>
+        <td style='text-align:left;padding-left:20px'><input type="checkbox" class="js-switch js-check-change" <?php echo $this->push['contact'];?> data-item='contact'/></td>
+    </tr>
+    <tr>
+        <td style='background-color:#f7fed8' width='250px'>お知らせ</td>
+        <td style='text-align:left;padding-left:20px'><input type="checkbox" class="js-switch js-check-change" <?php echo $this->push['notice'];?> data-item='notice'/></td>
+    </tr>
+    <tr>
+        <td style='background-color:#f7fed8' width='250px'>行事</td>
+        <td style='text-align:left;padding-left:20px'><input type="checkbox" class="js-switch js-check-change" <?php echo $this->push['event'];?> data-item='event'/></td>
+    </tr>
+    <tr>
+        <td style='background-color:#f7fed8' width='250px'>給食メニュー</td>
+        <td style='text-align:left;padding-left:20px'><input type="checkbox" class="js-switch js-check-change" <?php echo $this->push['dailymenu'];?> data-item='dailymenu'/></td>
+    </tr>
+    <tr>
+        <td style='background-color:#f7fed8' width='250px'>コメント</td>
+        <td style='text-align:left;padding-left:20px'><input type="checkbox" class="js-switch js-check-change" <?php echo $this->push['reply'];?> data-item='reply'/></td>
+    </tr>
+<?php if($this->loginedInfo['member_type'] == '3'){?>
+    <tr>
+        <td style='background-color:#f7fed8' width='250px'>出席確認</td>
+        <td style='text-align:left;padding-left:20px'><input type="checkbox" class="js-switch js-check-change" <?php echo $this->push['attendance'];?> data-item='attendance'/></td>
+    </tr>
+<?php }else{?>
+    <tr>
+        <td style='background-color:#f7fed8' width='250px'>内容確認</td>
+        <td style='text-align:left;padding-left:20px'><input type="checkbox" class="js-switch js-check-change" <?php echo $this->push['confirm'];?> data-item='confirm'/></td>
+    </tr>
+<?php }?>
+</table>

@@ -1,0 +1,33 @@
+<style>
+.ui-datepicker {font-size: 12px !important;}
+</style>
+<script>
+$(function(){
+	$("#schedule_date").datepicker({
+        inline: true,
+        defaultDate: new Date(),
+        onSelect: function(date) {
+            $("#schedule_date").datepicker('disable');
+            $('#schedule_date_fake').val(date);
+        }
+    });
+    $('#schedule_date_fake').focus(function(){
+        $("#schedule_date").datepicker('enable');
+        $("#schedule_date").focus();
+    });
+});
+</script>
+
+<table style='width:400px;height:35px'>
+<tr>
+    <td width='100px' style='background-color:#f7fed8;border: solid 1px #abc;text-align:center;'>日付選択</td>
+    <td style='border: solid 1px #abc'>
+        <div style='position:relative;'>
+            <input type='text' id='schedule_date'      style='border-radius:0px;border:1px #abc solid;position:absolute;top:-14px;left:0px'/>
+            <input type='text' id='schedule_date_fake' style='border-radius:0px;border:1px #abc solid;position:absolute;top:-14px;left:0px'/>
+        </div>
+        <input autofocus style='display:none'>
+    </td>
+</tr>
+</table>
+<input autofocus style='display:none'>

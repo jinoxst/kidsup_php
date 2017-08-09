@@ -1,0 +1,288 @@
+<style>
+.td_data {
+    border-bottom: none;
+}
+.table_data td {
+    padding: 7px 5px !important;
+}
+input[type=text]{
+    margin:0px;
+    border-radius:0px;
+}
+#cls_tbl_addform td {
+    padding: 3px 5px !important;
+}
+</style>
+<script>
+$(function(){
+    $('.table_data td').css({'border-bottom':'none'});
+    $('#btn_add').button({icons:{primary:'ui-icon-extlink'}});
+    $('#btn_add').click(function(){
+        $("#cls_div_addform").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("追加")').button({icons: {primary: 'ui-icon-circle-plus'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "追加": function() {
+                    var class_name = $.trim($('#cls_div_addform').find('input[type=text][name=class_name]').val());
+                    var class_desc = $.trim($('#cls_div_addform').find('input[type=text][name=class_desc]').val());
+                    if(class_name == ''){
+                        $('#cls_div_addform').find('input[type=text][name=class_name]').focus();
+                        showCommonAlertDialog('エラー','クラス名は必須です。');
+                        return;
+                    }
+                    if(class_desc == ''){
+                        $('#cls_div_addform').find('input[type=text][name=class_desc]').focus();
+                        showCommonAlertDialog('エラー','クラス説明は必須です。');
+                        return;
+                    }
+                    $(this).dialog('destroy');
+                    $.ajax({
+                        url: '/mng/postclassinfo',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            class_name:class_name,
+                            class_desc:class_desc
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    var params = {
+                                        url:'/mng/clslist',
+                                        backbutton_target:true,
+                                        history_seq:getNewHistorySeq(),
+                                        leftmenu:'cls'
+                                    };
+                                    window.History.pushState(params, null, '/');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){
+                            $('#cls_div_addform').find('input[type=text][name=class_name]').val('');
+                            $('#cls_div_addform').find('input[type=text][name=class_desc]').val('');
+                        }
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog('destroy');
+                    $('#cls_div_addform').find('input[type=text][name=class_name]').val('');
+                    $('#cls_div_addform').find('input[type=text][name=class_desc]').val('');
+                }
+            }
+        });
+    });
+    $('.btn_update').button({icons:{primary:'ui-icon-circle-check'}});
+    $('.btn_update').click(function(){
+        var class_id = $(this).siblings('input[type=hidden][name=class_id]').val();
+        var class_name = $.trim($(this).parent().parent().find('input[type=text][name=class_name]').val());
+        var class_desc = $.trim($(this).parent().parent().find('input[type=text][name=class_desc]').val());
+        if(class_name == ''){
+            $(this).parent().parent().find('input[type=text][name=class_name]').focus();
+            showCommonAlertDialog('エラー','クラス名は必須です。');
+            return;
+        }
+        if(class_desc == ''){
+            $(this).parent().parent().find('input[type=text][name=class_desc]').focus();
+            showCommonAlertDialog('エラー','クラスの説明は必須です。');
+            return;
+        }
+        $("#yes_no_common_alert").html('修正しますか');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/mng/updateclassinfo',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            class_id:class_id,
+                            class_name:class_name,
+                            class_desc:class_desc
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    showInfoMessage(200,'修正しました。',2000,'slow');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('.btn_delete').click(function(){
+        var class_id = $(this).siblings('input[type=hidden][name=class_id]').val();
+        $("#yes_no_common_alert").html('削除しますか');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/mng/deleteclassinfo',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            class_id:class_id
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    var params = {
+                                        url:'/mng/clslist',
+                                        backbutton_target:true,
+                                        history_seq:getNewHistorySeq(),
+                                        leftmenu:'cls'
+                                    };
+                                    window.History.pushState(params, null, '/');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){
+                        }
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('.btn_delete').button({icons:{primary:'ui-icon-circle-close'}});
+});
+</script>
+<h2>組の管理<span></span></h2>
+<table id='tb_title'>
+    <tr>
+        <td style='text-align:left'>
+            <button id='btn_add'>追加</button>
+        </td>
+    </tr>
+</table>
+<table>
+<?php
+if(count($this->list) > 0 ){
+    foreach ($this->list as $data) {
+?>
+    <tr>
+        <td class='td_data'>
+            <table class='table_data'>
+                <tr>
+                    <td style='background-color:#f7fed8' width='75px'><font color='red'>*</font>クラス</td>
+                    <td style='text-align:left' width='150px'><input type='text' name='class_name' value="<?php echo $data['name'];?>" style='width:140px;'/></td>
+                    <td style='background-color:#f7fed8' width='75px'><font color='red'>*</font>説明</td>
+                    <td style='text-align:left' width='150px'><input type='text' name='class_desc' value="<?php echo $data['desc'];?>" style='width:140px;'/></td>
+                    <td style='background-color:#f7fed8' width='75px'>承認数</td>
+                    <td width='50px'><?php echo $data['approved_cnt'];?></td>
+                    <td style='background-color:#f7fed8' width='75px'>未承認数</td>
+                    <td width='50px'><?php echo $data['nonapproved_cnt'];?></td>
+                </tr>
+            </table>
+        </td>
+        <td width='200px'>
+            <button class='btn_update'>修正</button>
+            <button class='btn_delete'>削除</button>
+            <input type='hidden' name='class_id' value='<?php echo $data["id"];?>'/>
+        </td>
+    </tr>
+<?php
+    }
+}
+?>    
+</table>
+<div id='cls_div_addform' style='display:none'>
+    <table id='cls_tbl_addform'>
+        <tr>
+            <td width='150px' style='background-color:#f7fed8;text-align:center;'><font color='red'>*</font>クラス名(例：うさぎ)</td>
+            <td><input type='text' name='class_name' style='width:300px;'></td>
+        </tr>
+        <tr>
+            <td width='150px' style='background-color:#f7fed8;text-align:center;'><font color='red'>*</font>説明(例：1歳)</td>
+            <td><input type='text' name='class_desc' style='width:300px;'></td>
+        </tr>
+    </table>
+</div>

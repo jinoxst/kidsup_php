@@ -1,0 +1,250 @@
+<style>
+table#tb_contact tr.clickable_yes {
+    cursor:pointer;
+}
+</style>
+<script>
+$(function(){
+    $("table#tb_contact tr.clickable_no").addClass('clickable_no');
+    $("table#tb_contact tr.not_yet_read").addClass('not_yet_read_mouseout');
+    $("table#tb_contact tr.clickable_yes.already_read").mouseover(function(){
+        $(this).removeClass('already_read_mouseout');
+        $(this).addClass('already_read_mouseover');
+    });
+    $("table#tb_contact tr.clickable_yes.already_read").mouseout(function(){
+        $(this).removeClass('already_read_mouseover');
+        $(this).addClass('already_read_mouseout');
+    });
+    $("table#tb_contact tr.clickable_yes.not_yet_read").mouseover(function(){
+        $(this).removeClass('not_yet_read_mouseeout');
+        $(this).addClass('not_yet_read_mouseover');
+    });
+    $("table#tb_contact tr.clickable_yes.not_yet_read").mouseout(function(){
+        $(this).removeClass('not_yet_read_mouseover');
+        $(this).addClass('not_yet_read_mouseout');
+    });
+    $("table#tb_contact tr.clickable_yes").on('click', function(){
+        var params = {
+            url:'/contact/detail',
+            contact_id:$(this).children().children('input[type="hidden"][name="contact_id"]').val(),
+            contact_confirm:$(this).children().children('input[type="hidden"][name="contact_confirm"]').val(),
+            year:$('#sYear').val(),
+            month:$('#sMonth').val(),
+            target_read_info:$(this).children().children('input[type="hidden"][name="target_read_info"]').val(),
+            reply_pageno:1,
+            reply_cnt:$(this).children().children('input[type="hidden"][name="reply_cnt"]').val(),
+            backbutton_target:true,
+            history_seq:getNewHistorySeq()
+        };
+        window.History.pushState(params, null, '/');
+    });
+    $('#contact_search').button({icons:{primary:'ui-icon-search'}});
+    $('#contact_search').click(function(){
+        getListByPageno(1);
+    });
+    $('#contact_add_form').button({icons:{primary:'ui-icon-circle-plus'}});
+    $('#contact_add_form').click(function(){
+        var params = {
+            url:'/contact/addform',
+            year:$('#sYear').val(),
+            month:$('#sMonth').val(),
+            action:'contact',
+            backbutton_target:true,
+            history_seq:getNewHistorySeq()
+        };
+        window.History.pushState(params, null, '/');
+    });
+    $('#trigger').val('pageno');
+    $('#pageno').val('<?php echo $this->pageno;?>');
+});
+function goFirstPage(){
+    $('#pageno').val(1);
+    getContactList();
+}
+function getListByPageno(pageno){
+    $('#pageno').val(pageno);
+    getContactList();
+}
+function goNextPageGroup(){
+    $('#trigger').val('nextgroup');
+    getContactList();
+}
+function goPrevPageGroup(){
+    $('#trigger').val('prevgroup');
+    getContactList();
+}
+function goLastPage(){
+    $('#trigger').val('lastpageno');
+    getContactList();
+}
+function getContactList(){
+    var params = {
+        url:'/contact/list',
+        year:$('#sYear').val(),
+        month:$('#sMonth').val(),
+        pageno:$('#pageno').val(),
+        trigger:$('#trigger').val(),
+        backbutton_target:true,
+        history_seq:getNewHistorySeq()
+    };
+    window.History.pushState(params, null, '/');
+}
+</script>
+<h2>連絡帳<span></span></h2>
+<table id='tb_title'>
+    <tr>
+        <td width='250px'>
+            <select id='sYear'>
+            <?php
+                for($i=$this->minY;$i<=date('Y');$i++){
+                    $ySelected = '';
+                    if($this->curY == $i){
+                        $ySelected = 'selected';
+                    }else{
+                        $ySelected = '';
+                    }
+            ?>
+                <option value='<?php echo $i;?>' <?php echo $ySelected;?>><?php echo $i;?></option>
+            <?php
+                }
+            ?>
+            </select>年
+            <select id='sMonth'>
+            <?php 
+                $mSelected = '';
+                for($i=1;$i<=12;$i++){ 
+                    $m = '';
+                    if($i < 10){
+                        $m = '0' . $i;
+                    }else{
+                        $m = $i;
+                    }
+                    if($this->curM == $m){
+                        $mSelected = 'selected';
+                    }else{
+                        $mSelected = '';
+                    }
+            ?>
+                <option value='<?php echo $m;?>' <?php echo $mSelected;?>><?php echo $i;?></option>
+            <?php }?>
+            </select>月
+        </td>
+        <td style='text-align:left'>
+            <button id='contact_search'>検索</button>
+            <button id='contact_add_form'>作成</button>
+        </td>
+    </tr>
+</table>
+<table id="tb_contact">
+<?php
+if(count($this->list) > 0 ){
+    foreach ($this->list as $data) {
+        $contactTypeStr = '';
+        if($data['contact_type'] == '1'){
+            $contactTypeStr = '家庭から';
+        }else{
+            $contactTypeStr = '園から';
+        }
+        $have_picture_data = '';
+        if(isset($data['have_pictures_url']) && $data['have_pictures_url'] != ''){
+            $have_picture_data = "<img src='".$data['have_pictures_url']."' style='vertical-align: middle;'/>";
+            if($data['target_read_info'] != ''){
+                $have_picture_data .= '<br>'.$data['target_read_info'];
+            }
+        }else{
+            if($data['target_read_info'] != ''){
+                $have_picture_data .= $data['target_read_info'];
+            }
+        }
+        $tr_clickable = 'clickable_yes';
+        if($data['status'] != '0'){
+            $tr_clickable = 'clickable_no';
+            $data['contents'] = '削除された内容です。';
+        }else{
+            if($data['all_read_flag'] == '1'){
+                if($data['contact_type'] == '1'){
+                    $data['contents'] .= '<br><font color="blue" size="12px">(先生が内容を確認しました。)</font>';
+                }else{
+                    $data['contents'] .= '<br><font color="blue" size="12px">(保護者が内容を確認しました。)</font>';
+                }
+            }
+            if($data['contact_confirm'] == '1'){
+                $tr_clickable .= ' not_yet_read';
+            }else{
+                $tr_clickable .= ' already_read';
+            }
+        }
+?>
+    <tr class='<?php echo $tr_clickable;?>'>
+        <td width='15px'><?php echo $data['attention'];?></td>
+        <td width='60px'><?php echo $contactTypeStr;?>
+            <input type='hidden' name='contact_id' value='<?php echo $data['contact_id']?>'/>
+            <input type='hidden' name='contact_confirm' value='<?php echo $data['contact_confirm']?>'/>
+            <input type='hidden' name='target_read_info' value='<?php echo $data['target_read_info']?>'/>
+            <input type='hidden' name='reply_cnt' value='<?php echo $data['reply_cnt']?>'/>
+        </td>
+        <td width='135px'><?php echo $data['writer_name'];?><br><?php echo $data['createtime'];?></td>
+        <td width='20px'><?php echo $have_picture_data;?></td>
+        <td><?php echo $data['contents'];?></td>
+        <td width='35px'><?php if ($data['reply_cnt'] > 0){?><div class='valign_middle' style='margin-right:2px'><img src='/img/icon/balloon.png'/></div><?php echo $data['reply_cnt'];?><?php }?></td>
+    </tr>
+<?php 
+    }
+?>
+    <tr class="page_control">
+        <td colspan="6">
+<?php 
+    if($this->pagenator['firstPageFlag'] == 0){
+?>
+            <p>最初</p>
+<?php 
+    }else{
+?>
+            <a href='javascript:goFirstPage();'>最初</a>
+<?php 
+    }
+    if($this->pagenator['preGroupFlag'] == 0){
+?>
+            <p>前へ</p>
+<?php
+    }else{
+?>
+            <a href='javascript:goPrevPageGroup();'>前へ</a>
+<?php
+    }
+    foreach($this->pagenator['pagenoArr'] as $pno){
+        if($pno == $this->pageno){
+?>
+                <p id="here"><?php echo $pno;?></p> 
+<?php 
+        }else{
+?>
+                <a href="javascript:getListByPageno(<?php echo $pno;?>)"><?php echo $pno;?></a> 
+<?php
+        }
+    }
+    if($this->pagenator['nextGroupFlag'] == 0){
+?>
+            <p>次へ</p>
+<?php 
+    }else{
+?>
+            <a href='javascript:goNextPageGroup();'>次へ</a>
+<?php 
+    }
+    if($this->pagenator['lastPageFlag'] == 0){
+?>
+            <p>最後</p>
+<?php 
+    }else{
+?>
+            <a href='javascript:goLastPage();'>最後</a>
+<?php 
+    }
+?>
+        </td>
+    </tr>
+<?php
+}
+?>    
+</table>

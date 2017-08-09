@@ -1,0 +1,255 @@
+<style>
+.kids_table{
+    background-color:#e0ecfe;
+}
+.kids_td {
+    width:25% !important;
+    border-top:1px #abc solid;
+    border-right:1px #abc solid;
+    border-bottom:1px #abc solid;
+    border-left:1px #abc solid;
+}
+</style>
+<script>
+$(function(){
+    $('.kids_table td').css({'border-bottom':'none'});
+    $('.kids_table').click(function(){
+        var img = $(this).find('img[src$="/img/icon/check.png"]');
+        img.toggle();
+    });
+    $('#all_select').button({icons:{primary:'ui-icon-pin-s'}});
+    $('#all_select').click(function(){
+        $('img[src$="/img/icon/check.png"]').show();
+    });
+    $('#all_release').button({icons:{primary:'ui-icon-pin-w'}});
+    $('#all_release').click(function(){
+        $('img[src$="/img/icon/check.png"]').hide();
+    });
+    $('#attendanceinfo_search').button({icons:{primary:'ui-icon-search'}});
+    $('#attendanceinfo_search').click(function(){
+        $(this).blur();
+        var params = {
+            url:'/mng/attendanceinfo',
+            backbutton_target:true,
+            history_seq:getNewHistorySeq(),
+            leftmenu:'attendance',
+            date:$('#date').val(),
+            class_id:$('#class_id').val()
+        };
+        window.History.pushState(params, null, '/');
+    });
+    $('#attendanceinfo_update').button({icons:{primary:'ui-icon-circle-check'}});
+    $('#attendanceinfo_update').click(function(){
+        var date = $.trim($('#date').val());
+        if(date){
+            if(date.length != 8){
+                $('#date').focus();
+                showCommonAlertDialog('エラー','日付を確認して下さい。');
+                return;
+            }
+        }
+        var kids_cnt = parseInt('<?php echo count($this->list);?>');
+        if(kids_cnt == 0){
+            showCommonAlertDialog('エラー','クラスに会員が存在しません。');
+            return;
+        }
+        var kids_id_str = '';
+        $('img[src$="/img/icon/check.png"]').each(function(){
+            if($(this).is(':visible')){
+                var kids_id = $(this).siblings('input[type=hidden][name=kids_id]').val();
+                kids_id_str += kids_id + ',';
+            }
+        });
+        if(kids_id_str.length > 0){
+            kids_id_str = kids_id_str.substr(0, kids_id_str.length-1);
+        }
+        $("#yes_no_common_alert").html('反映しますかしますか');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/mng/checkattendance',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            class_id:$('input[type=hidden][name=attendance_class_id]').val(),
+                            date:$('input[type=hidden][name=attendance_date]').val(),
+                            kids_id_str:kids_id_str
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    if(d.push_send_cnt && d.push_send_cnt > 0){
+                                        showInfoMessage(300,'プッシュ通知を正常的に送りました。',2000,'slow');
+                                    }
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){                            
+                        }
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('#class_id').change(function(){
+        if($(this).val() != $('input[type=hidden][name=attendance_class_id]').val()){
+            var params = {
+                url:'/mng/attendanceinfo',
+                backbutton_target:true,
+                history_seq:getNewHistorySeq(),
+                leftmenu:'attendance',
+                date:$('#date').val(),
+                class_id:$(this).val()
+            };
+            window.History.pushState(params, null, '/');
+        }
+    });
+    $("#date").datepicker({
+        defaultDate: new Date(),
+        beforeShow: function() {
+        },
+        onSelect: function(d){
+            if(d != $('input[type=hidden][name=attendance_date]').val()){
+                var params = {
+                    url:'/mng/attendanceinfo',
+                    backbutton_target:true,
+                    history_seq:getNewHistorySeq(),
+                    leftmenu:'attendance',
+                    date:d,
+                    class_id:$('input[type=hidden][name=attendance_class_id]').val()
+                };
+                window.History.pushState(params, null, '/');
+            }
+        }
+    });
+});
+</script>
+<input type='hidden' name='attendance_class_id' value='<?php echo $this->class_id;?>' />
+<input type='hidden' name='attendance_date' value='<?php echo $this->date;?>' />
+<h2>出席簿<span></span></h2>
+<table id='tb_title'>
+    <tr>
+        <td style='background-color:#f7fed8' width='80px'>クラス</td>
+        <td style='text-align:left;' width='180px'>
+            <select id='class_id' style='margin:0px;width:150px !important;'>
+<?php
+            foreach($this->classlist as $class){
+                $selected = '';
+                if($class['id'] == $this->class_id){
+                    $selected = 'selected';
+                }
+?>
+            <option value='<?php echo $class['id'];?>' <?php echo $selected;?>><?php echo $class['name'];?>(<?php echo $class['approved_cnt'];?>)</option>
+<?php
+            }
+?>
+            </select>
+
+
+        </td>
+        <td style='width=170px;background-color:#f7fed8' width='80px'>日付</td>
+        <td style='text-align:left;' width='120px'><input type='text' id='date' style='margin:0px;border-radius:0px;width:100px;' value='<?php echo $this->date;?>'/></td>
+        <td style='text-align:left'>
+            <button id='attendanceinfo_search'>検索</button>
+            <button id='all_select'>全選択</button>
+            <button id='all_release'>全解除</button>
+            <button id='attendanceinfo_update'>この状態で反映</button>
+        </td>
+    </tr>
+</table>
+<?php 
+$kidsCnt = count($this->list);
+$i = 1;
+if($kidsCnt > 0){
+?>
+<table id='outer_table'>
+<?php
+    foreach($this->list as $kids){
+        $checkImgDisplay = 'display:none';
+        if($kids['attendance'] == '1'){
+            $checkImgDisplay = 'display:block';
+        }
+        if($i % 4 == 1){
+?>
+    <tr>
+<?php
+        }
+?>
+        <td class='kids_td'>
+            <table class='kids_table'>
+                <tr>
+                    <td width='65px'>
+                        <p style='position:relative'>
+                            <img src='<?php echo $kids['img']; ?>' style='width:60px;height:67px;'/>
+                            <img src='<?php echo $kids['sex_img']; ?>' style='position:absolute;top:42px;left:35px;'/>
+                        </p>
+                    </td>
+                    <td style='text-align:left'>
+                        <p style='position:relative'>
+                            <?php echo $kids['name']; ?><br>
+                            <?php echo $kids['birthday_str']; ?>
+                            <img src='/img/icon/check.png' style='width:52px;height:52px;position:absolute;top:0px;left:95px;<?php echo $checkImgDisplay;?>'/>
+                            <input type='hidden' name='kids_id' value="<?php echo $kids['id'] ?>"/>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+<?php
+        if($kidsCnt == 1 && $kidsCnt == $i){
+            echo '<td></td><td></td><td></td>';
+        }
+        if($kidsCnt == 2 && $kidsCnt == $i){
+            echo '<td></td><td></td>';
+        }
+        if($kidsCnt == 3 && $kidsCnt == $i){
+            echo '<td></td>';
+        }
+        if($i % 4 == 0){
+?>
+    </tr>
+<?php
+        }else if($kidsCnt == $i){
+?>
+    </tr>
+<?php
+        }
+        $i++;
+    }
+?>
+</table>
+<?php
+}
+?>

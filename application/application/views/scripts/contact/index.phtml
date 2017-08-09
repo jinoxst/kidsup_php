@@ -1,0 +1,45 @@
+<style>
+table#tb_contact tr.clickable_yes td:nth-child(2){
+    text-align:left;
+}
+table#tb_contact tr.clickable_yes td:nth-child(3){
+    text-align:left;
+}
+table#tb_contact tr.clickable_yes td:nth-child(5){
+    text-align:left;
+}
+table#tb_contact tr.clickable_no td:nth-child(2){
+    text-align:left;
+}
+table#tb_contact tr.clickable_no td:nth-child(3){
+    text-align:left;
+}
+table#tb_contact tr.clickable_no td:nth-child(5){
+    text-align:left;
+}
+</style>
+<script>
+$(function(){
+    var curY = new Date().getFullYear();
+    var curM = new Date().getMonth() + 1;
+    if(curM < 10){
+        curM = '0' + curM;
+    }
+    var params = {
+        url:'/contact/list',
+        year:curY,
+        month:curM,
+        pageno:$('#pageno').val(),
+        trigger:$('#trigger').val(),
+        backbutton_target:true,
+        history_seq:getNewHistorySeq()
+    };
+    window.History.pushState(params, null, '/');
+});
+</script>
+<input type='hidden' name='pageno' id='pageno' value='<?php echo $this->pageno;?>' />
+<input type='hidden' name='trigger' id='trigger' value='pageno' />
+<div id="main">
+    <?php include $_SERVER['DOCUMENT_ROOT']."/include/side.php"; ?>
+    <div id="contents"></div>
+</div>

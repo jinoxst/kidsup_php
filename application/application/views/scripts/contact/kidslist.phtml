@@ -1,0 +1,65 @@
+<script>
+$(function(){
+    commonFn('<?php echo count($this->kidslist);?>');
+    $('#target_all_select').button({icons:{primary:'ui-icon-check'}});
+    $('#target_all_deselect').button({icons:{primary:'ui-icon-close'}});
+});
+</script>
+    <table id='kidsTop'>
+        <tr>
+            <td style='text-align:left'>
+                <button id='target_all_select'>全選択</button>
+                <button id='target_all_deselect'>全解除</button>
+            </td>
+        </tr>
+    </table>
+    <div id='kidsDivCss'>
+    <table>
+<?php 
+    $kidsCnt = count($this->kidslist);
+    $i = 1;
+    if($kidsCnt > 0){
+        foreach($this->kidslist as $kids){
+            if($i % 3 == 1){
+?>
+        <tr>
+<?php
+            }
+?>
+            <td class='kids_td'>
+                <table class='kids_table'>
+                    <tr>
+                        <td style='width:60px;text-align:left;'>
+                            <p style='position:relative'>
+                                <img src='<?php echo $kids['img']; ?>' style='width:60px;height:67px;'/>
+                                <img src='<?php echo $kids['sex_img']; ?>' style='position:absolute;top:42px;left:35px;'/>
+                            </p>
+                        </td>
+                        <td style='text-align:left'>
+                            <p style='position:relative;'>
+                                <?php echo $kids['name']; ?>(<?php echo $kids['member_name']; ?>)<br>
+                                <?php echo $kids['birthday_str']; ?><br>
+                                <?php echo $kids['phonenum']; ?>
+                                <img src='/img/icon/check.png' style='width:52px;height:52px;position:absolute;top:20px;left:110px;display:none'/>
+                                <input type='hidden' name='kids_id' value='<?php echo $kids['id'];?>'/>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+<?php
+        if($i % 3 == 0){
+?>
+        </tr>
+<?php
+        }else if($kidsCnt == $i){
+?>
+        </tr>
+<?php
+        }
+        $i++;
+    }
+}
+?>
+    </table>
+    </div>

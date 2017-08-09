@@ -1,0 +1,262 @@
+<style>
+table#tb_contact_addform td:nth-child(2) select:nth-child(1){
+    border:1px #abc solid;
+    width:250px;
+    float: left;
+}
+div.btn_area{
+    width:250px;
+}
+.kids_td {
+    width:33%;
+    padding:3px 5px;
+    border-top:1px #abc solid;
+    border-right:1px #abc solid;
+    border-bottom:1px #abc solid;
+    border-left:1px #abc solid;
+}
+textarea {
+    resize: vertical;
+}
+.dropzone {
+    border: 2px dashed #0087F7;
+    border-radius:20px;
+}
+#warn_msg {
+    margin-top: 10px;
+    color: red;
+    font-size: 0.8em;
+/*    text-align: left;*/
+}
+.kids_table{
+    background-color:#e0ecfe;
+}
+</style>
+<script>
+$(function(){
+    $('#contact_add').button({icons:{primary:'ui-icon-pencil'}});
+    $('#contact_add').click(function(){
+        var memberType = '<?php echo $this->loginedInfo['member_type'];?>';
+        var cnt = getSelectedTargetCnt();
+        var to_kids_id = '';
+        if(memberType == '1' || memberType == '2'){
+            if(cnt == 0){
+                showCommonAlertDialog('注意','連絡する対象者数がゼロです。連絡対象リストから一人以上を選択して下さい。');
+                return;
+            }
+            $('img[src$="/img/icon/check.png"]').each(function(){
+                if($(this).is(':visible')){
+                    var kids_id = $(this).siblings('input[type=hidden][name=kids_id]').val();
+                    to_kids_id += kids_id + ',';
+                }
+            });
+            to_kids_id = to_kids_id.substr(0, to_kids_id.length - 1);
+        }
+        if($.trim($('#contact_contents').val()) == ''){
+            $('#contact_contents').val('');
+            $('#contact_contents').focus();
+            showCommonAlertDialog('注意','連絡内容を入力して下さい。');
+            return;
+        }
+        var imageFileStr = '';
+        $('.dz-preview.dz-image-preview.dz-processing.dz-success.dz-complete>.dz-details>.dz-filename>span').each(function(idx, el){
+            imageFileStr += $(this).text() + ';'
+        });
+        $("#yes_no_common_alert").html('連絡帳を作成しますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/contact/postcontents',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            contents:$.trim($('#contact_contents').val()),
+                            to_kids_id:to_kids_id,
+                            image_file_str:imageFileStr
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    $('#contact_add_cancel').trigger('click');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('#contact_add_cancel').button({icons:{primary:'ui-icon-arrowreturnthick-1-w'}});
+    $('#contact_add_cancel').click(function(){
+        var params = {
+            url:'/contact/list',
+            year:'<?php echo $this->year; ?>',
+            month:'<?php echo $this->month; ?>',
+            pageno:$('#pageno').val(),
+            trigger:$('#trigger').val(),
+            backbutton_target:true,
+            history_seq:getNewHistorySeq()
+        };
+        window.History.pushState(params, null, '/');
+    });
+    var memberType = "<?php echo $this->loginedInfo['member_type'];?>";
+    if(memberType == '2'){
+        commonFn('<?php echo count($this->kidslist);?>');
+    }
+    $('select#class').change(function(){
+        if(!$(this).val()){
+            showInfoMessage(300,'クラスを選択しtえ下さい。',2000,'slow');
+            return false;
+        }
+        $.ajax({
+            url: '/contact/kidslist',
+            type: 'GET',
+            dataType: 'html',
+            data: {
+                class_id:$(this).val()
+            },
+            beforeSend: function(xhr){
+                xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+            },
+            error: function(xhr, status, e){
+                console.log(xhr);
+                console.log(status);
+                console.log(e);
+                showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+            },
+            success: function(d){
+                if(d.status == _SEAR_){
+                    showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                }else{
+                    $('#tr_kidslist td:nth-child(2) div:first').html(d);
+                    $('#tr_kidslist').show();
+                }
+            },
+            complete: function(){}
+        });
+    });
+});
+function commonFn(kidslistCnt){
+    $('.kids_table td').css({'border-bottom':'none'});
+    $('#kidsTop td').css({'border-bottom':'none'});
+    $('.kids_table').click(function(){
+        var img = $(this).find('img[src$="/img/icon/check.png"]');
+        img.toggle();
+        $('#target_selected_cnt').html('(<font color="red">' + getSelectedTargetCnt() + '</font>)');
+    });
+    var kidsCnt = parseInt(kidslistCnt);
+    var per = Math.floor(kidsCnt / 3);
+    var kidsDivHeight = 'height:' + (per * 85) + 'px';
+    if(per >= 5){
+        $('#kidsDivCss').css({'height':'400px','overflow':'auto'});
+    }else{
+        $('#kidsDivCss').css({'height':kidsDivHeight});
+    }
+    $('#target_all_select').click(function(){
+        $('img[src$="/img/icon/check.png"]').show();
+        $('#target_selected_cnt').html('(<font color="red">' + getSelectedTargetCnt() + '</font>)');
+    });
+    $('#target_all_deselect').click(function(){
+        $('img[src$="/img/icon/check.png"]').hide();
+        $('#target_selected_cnt').html('(<font color="red">' + getSelectedTargetCnt() + '</font>)');
+    });
+    $('.kids_table').css({'width':'233px'});
+}
+function getSelectedTargetCnt(){
+    var cnt = 0;
+    $('img[src$="/img/icon/check.png"]').each(function(){
+        if($(this).is(':visible')){
+            cnt++;
+        }
+    });
+
+    return cnt;
+}
+</script>
+<h2>連絡帳<span>連絡内容を作成します。</span></h2>
+<table style='width:940px' id='tb_contact_addform'>
+<?php
+    if($this->loginedInfo['member_type'] == '1' || $this->loginedInfo['member_type'] == '2'){
+        $classCnt = count($this->classlist);
+        $i = 1;
+        if($classCnt > 0){
+?>
+    <tr>
+        <td width='170px' style='background-color:#f7fed8'>クラス</td>
+        <td>
+            <select id='class' style='margin:0px;'>
+            <option value=''>クラスを選択して下さい。</option>
+<?php
+            foreach($this->classlist as $class){
+?>
+            <option value='<?php echo $class['id'];?>'><?php echo $class['name'];?>(<?php echo $class['approved_cnt'];?>)</option>
+<?php
+            }
+?>
+            </select>
+        </td>
+    </tr>
+    <tr id='tr_kidslist' style='display:none;'>
+        <td width='170px' style='background-color:#f7fed8'><font color='red'>*</font>対象<div id='target_selected_cnt'>(<font color="red">0</font>)</div></td>
+        <td><div></div></td>
+    </tr>
+<?php
+        }
+    }
+?>
+    <tr>
+        <td style='width=190px;background-color:#f7fed8'><font color='red'>*</font>内容</td>
+        <td><textarea name="contact_contents" id="contact_contents" cols="120" rows="6" wrap="hand" style='width:750px;border:1px #abc solid'></textarea></td>
+    </tr>
+    <tr>
+        <td style='background-color:#f7fed8'>写真添付<br><div id='warn_msg'>(利用可能な形式：jpg/jpeg/png<br>写真のサイズ：4MB以下<br>同時添付数：10個まで)</div></td>
+        <td>
+            <div id="dropbox">
+                <form action="" class="uploadform dropzone dz-clickable">
+                    <div class="dz-default dz-message">
+                        <span>写真ファイルをDrag & Dropするかここをクリックして下さい。</span>
+                        <br>
+                        <span class="note">(Drag & Drop Images or Click here)</span>
+                    </div>
+                </form>
+            </div>
+        </td>
+    </tr>
+</table>
+<div class="btn_area">
+    <button id='contact_add'>作成</button>
+    <button id='contact_add_cancel'>キャンセル</button>
+</div>

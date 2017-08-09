@@ -1,0 +1,128 @@
+<style>
+table#tb_update_memberinfoform td:nth-child(2) select:nth-child(1){
+    border:1px #abc solid;
+    width:250px;
+    float: left;
+}
+div.btn_area{
+    width:250px;
+}
+.kids_td {
+    width:33%;
+    padding:3px 5px;
+    border-top:1px #abc solid;
+    border-right:1px #abc solid;
+    border-bottom:1px #abc solid;
+    border-left:1px #abc solid;
+}
+textarea {
+    resize: vertical;
+}
+#warn_msg {
+    margin-top: 10px;
+    color: red;
+    font-size: 0.8em;
+}
+.kids_table{
+    background-color:#e0ecfe;
+}
+</style>
+<script>
+$(function(){
+    $('.kids_table td').css({'border-bottom':'none'});
+    $('#update_memberinfo').button({icons:{primary:'ui-icon-circle-check'}});
+    $('#update_memberinfo').click(function(){
+        var member_name = $.trim($('input[type=text][name=member_name]').val());
+        if(member_name == ''){
+            $('input[type=text][name=member_name]').focus();
+            showCommonAlertDialog('注意','お名前を入力して下さい。');
+            return;
+        }
+        var phonenum = $.trim($('input[type=text][name=phonenum]').val());
+        if(phonenum == ''){
+            $('input[type=text][name=phonenum]').focus();
+            showCommonAlertDialog('注意','電話番号を入力して下さい。');
+            return;
+        }
+        $("#yes_no_common_alert").html('変更しますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/setting/updatememberinfo',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            member_name:member_name,
+                            phonenum:phonenum
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    var member_type = '<?php echo $this->loginedInfo["member_type"];?>';
+                                    var show_userinfo_str = '<img src="<?php echo $this->loginedInfo['img'];?>" style="width:28px;height:28px;vertical-align:middle"/>&nbsp;';
+                                    if(member_type == '1'){
+                                        show_userinfo_str += member_name + ' | ' + '<?php echo $this->loginedInfo["center_name"];?>';
+                                    }else if(member_type == '2'){
+                                        show_userinfo_str += member_name + ' | ' + '<?php echo $this->loginedInfo["center_name"];?>' + ' | ' + '<?php echo $this->loginedInfo["class_name"];?>';
+                                    }else{
+                                        show_userinfo_str += '<?php echo $this->loginedInfo["kids_name"];?>' + ' | ' + '<?php echo $this->loginedInfo["center_name"];?>' + ' | ' + '<?php echo $this->loginedInfo["class_name"];?>';
+                                    }
+                                    $('div.user.logout p').html(show_userinfo_str);
+                                    showInfoMessage(300,'ユーザ情報を修正しました。',2000,'slow');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+});
+</script>
+<h2>ユーザ情報変更<span></span></h2>
+<table style='width:940px' id='tb_update_memberinfoform'>
+    <tr>
+        <td style='width=170px;background-color:#f7fed8'><font color='red'>*</font>お名前</td>
+        <td style='text-align:left'><input type='text' name="member_name" style='margin:0px;width:400px;border-radius:0px;border:1px #abc solid' value='<?php echo $this->loginedInfo["member_name"];?>'/></td>
+    </tr>
+    <tr>
+        <td style='width=170px;background-color:#f7fed8'><font color='red'>*</font>電話番号</td>
+        <td style='text-align:left'><input type='text' name="phonenum" style='margin:0px;width:400px;border-radius:0px;border:1px #abc solid' value='<?php echo $this->loginedInfo["phonenum"];?>'/></td>
+    </tr>
+</table>
+<div class="btn_area">
+    <button id='update_memberinfo'>変更</button>
+</div>

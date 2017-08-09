@@ -1,0 +1,233 @@
+<style>
+table#tb_event tr.clickable_yes {
+    cursor:pointer;
+}
+table#tb_title td:nth-child(1) select:nth-child(1){
+    border:1px #000 solid;
+    width:80px;
+}
+table#tb_title td:nth-child(1) select:nth-child(2){
+    border:1px #000 solid;
+    width:70px;
+}
+
+table#tb_event tr.clickable_yes td:nth-child(2){
+    text-align:left;
+}
+table#tb_event tr.clickable_yes td:nth-child(3){
+    text-align:left;
+}
+table#tb_event tr.clickable_yes td:nth-child(4){
+    text-align:left;
+}
+table#tb_event tr.clickable_no td:nth-child(2){
+    text-align:left;
+}
+table#tb_event tr.clickable_no td:nth-child(3){
+    text-align:left;
+}
+table#tb_event tr.clickable_no td:nth-child(4){
+    text-align:left;
+}
+</style>
+<script>
+$(function(){    
+    $("table#tb_event tr.clickable_no").addClass('clickable_no');
+    $("table#tb_event tr.not_yet_read").addClass('not_yet_read_mouseout');
+    $("table#tb_event tr.clickable_yes.already_read").mouseover(function(){
+        $(this).removeClass('already_read_mouseout');
+        $(this).addClass('already_read_mouseover');
+    });
+    $("table#tb_event tr.clickable_yes.already_read").mouseout(function(){
+        $(this).removeClass('already_read_mouseover');
+        $(this).addClass('already_read_mouseout');
+    });
+    $("table#tb_event tr.clickable_yes.not_yet_read").mouseover(function(){
+        $(this).removeClass('not_yet_read_mouseeout');
+        $(this).addClass('not_yet_read_mouseover');
+    });
+    $("table#tb_event tr.clickable_yes.not_yet_read").mouseout(function(){
+        $(this).removeClass('not_yet_read_mouseover');
+        $(this).addClass('not_yet_read_mouseout');
+    });
+    $("table#tb_event tr.clickable_yes").on('click', function(){
+        var params = {
+            url:'/event/detail',
+            event_id:$(this).children().children('input[type="hidden"][name="event_id"]').val(),
+            event_confirm:$(this).children().children('input[type="hidden"][name="event_confirm"]').val(),
+            target_read_info:$(this).children().children('input[type="hidden"][name="target_read_info"]').val(),
+            reply_pageno:1,
+            reply_cnt:$(this).children().children('input[type="hidden"][name="reply_cnt"]').val(),
+            backbutton_target:true,
+            history_seq:getNewHistorySeq()
+        };
+        window.History.pushState(params, null, '/');
+    });
+    $('#event_search').button({icons:{primary:'ui-icon-search'}});
+    $('#event_search').click(function(){
+        getListByPageno(1);
+    });
+    $('#event_add_form').button({icons:{primary:'ui-icon-circle-plus'}});
+    $('#event_add_form').click(function(){
+        var params = {
+            url:'/event/addform',
+            action:'event',
+            backbutton_target:true,
+            history_seq:getNewHistorySeq()
+        };
+        window.History.pushState(params, null, '/');
+    });
+    $('#trigger').val('pageno');
+    $('#pageno').val('<?php echo $this->pageno;?>');
+});
+function goFirstPage(){
+    $('#pageno').val(1);
+    getEventList();
+}
+function getListByPageno(pageno){
+    $('#pageno').val(pageno);
+    getEventList();
+}
+function goNextPageGroup(){
+    $('#trigger').val('nextgroup');
+    getEventList();
+}
+function goPrevPageGroup(){
+    $('#trigger').val('prevgroup');
+    getEventList();
+}
+function goLastPage(){
+    $('#trigger').val('lastpageno');
+    getEventList();
+}
+function getEventList(){
+    var params = {
+        url:'/event/list',
+        pageno:$('#pageno').val(),
+        trigger:$('#trigger').val(),
+        backbutton_target:true,
+        history_seq:getNewHistorySeq()
+    };
+    window.History.pushState(params, null, '/');
+}
+</script>
+<h2>行事<span></span></h2>
+<table id='tb_title'>
+    <tr>
+        <td style='text-align:left'>
+            <button id='event_search'>検索</button>
+<?php if($this->loginedInfo['member_type'] != '3'){?>
+            <button id='event_add_form'>作成</button>
+<?php }?>
+        </td>
+    </tr>
+</table>
+<table id="tb_event">
+<?php
+if(count($this->list) > 0 ){
+    foreach ($this->list as $data) {
+        $ClassTargetDesc = '';
+        if($data['event_type'] == '1'){
+            $ClassTargetDesc = '全体の組';
+        }else{
+            $ClassTargetDesc = $data['class_name'];
+        }
+        $have_picture_data = '';
+        if(isset($data['have_pictures_url']) && $data['have_pictures_url'] != ''){
+            $have_picture_data = "<img src='".$data['have_pictures_url']."' style='vertical-align: middle;'/>";
+            if($data['target_read_info'] != ''){
+                $have_picture_data .= '<br>'.$data['target_read_info'];
+            }
+        }else{
+            if($data['target_read_info'] != ''){
+                $have_picture_data .= $data['target_read_info'];
+            }
+        }
+        $tr_clickable = 'clickable_yes';
+        if($data['status'] != '0'){
+            $tr_clickable = 'clickable_no';
+            $data['contents'] = '削除された内容です。';
+        }else{
+            $data['contents'] = '<font style="font-weight:bold;">'.$data['title'].'</font><br>'.$data['contents'];
+            if($data['event_confirm'] == '1'){
+                $tr_clickable .= ' not_yet_read';
+            }else{
+                $tr_clickable .= ' already_read';
+            }
+        }
+?>
+    <tr class='<?php echo $tr_clickable;?>'>
+        <td width='75px'><?php echo $ClassTargetDesc;?>
+            <input type='hidden' name='event_id' value='<?php echo $data['event_id']?>'/>
+            <input type='hidden' name='event_confirm' value='<?php echo $data['event_confirm']?>'/>
+            <input type='hidden' name='target_read_info' value='<?php echo $data['target_read_info']?>'/>
+            <input type='hidden' name='reply_cnt' value='<?php echo $data['reply_cnt']?>'/>
+        </td>
+        <td width='135px'><?php echo $data['writer_name'];?><br><?php echo $data['createtime'];?></td>
+        <td width='20px'><?php echo $have_picture_data;?></td>
+        <td><?php echo $data['contents'];?></td>
+        <td width='35px'>
+            <?php if ($data['good_cnt'] > 0){?><div class='valign_middle' style='margin-right:2px'><img src='/img/icon/heart.png'/></div><?php echo $data['good_cnt'];?><?php }?>
+            <?php if ($data['reply_cnt'] > 0){?><div class='valign_middle' style='margin-right:2px'><img src='/img/icon/balloon.png'/></div><?php echo $data['reply_cnt'];?><?php }?>
+        </td>
+    </tr>
+<?php 
+    }
+?>
+    <tr class="page_control">
+        <td colspan="6">
+<?php 
+    if($this->pagenator['firstPageFlag'] == 0){
+?>
+            <p>最初</p>
+<?php 
+    }else{
+?>
+            <a href='javascript:goFirstPage();'>最初</a>
+<?php 
+    }
+    if($this->pagenator['preGroupFlag'] == 0){
+?>
+            <p>前へ</p>
+<?php
+    }else{
+?>
+            <a href='javascript:goPrevPageGroup();'>前へ</a>
+<?php
+    }
+    foreach($this->pagenator['pagenoArr'] as $pno){
+        if($pno == $this->pageno){
+?>
+                <p id="here"><?php echo $pno;?></p> 
+<?php 
+        }else{
+?>
+                <a href="javascript:getListByPageno(<?php echo $pno;?>)"><?php echo $pno;?></a> 
+<?php
+        }
+    }
+    if($this->pagenator['nextGroupFlag'] == 0){
+?>
+            <p>次へ</p>
+<?php 
+    }else{
+?>
+            <a href='javascript:goNextPageGroup();'>次へ</a>
+<?php 
+    }
+    if($this->pagenator['lastPageFlag'] == 0){
+?>
+            <p>最後</p>
+<?php 
+    }else{
+?>
+            <a href='javascript:goLastPage();'>最後</a>
+<?php 
+    }
+?>
+        </td>
+    </tr>
+<?php
+}
+?>    
+</table>

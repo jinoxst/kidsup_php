@@ -1,0 +1,312 @@
+<style>
+.table_picture{
+    background-color:#ffffff;
+}
+.td_picture {
+    width:60px;
+    border-bottom: none;
+}
+.typeDiv{
+    background-color:#FFC0CB;
+    color:#800080;
+    border-radius:4px;
+}
+.td_data {
+    border-bottom: none;
+}
+</style>
+<script>
+$(function(){
+    $('.table_picture td').css({'border-bottom':'none'});
+    $('.table_data td').css({'border-bottom':'none'});
+    $('select#class').change(function(){
+        if($(this).val() != '<?php echo $this->class_id;?>'){
+            var params = {
+                url:'/mng/kidslist',
+                class_id:$(this).val(),
+                backbutton_target:true,
+                history_seq:getNewHistorySeq(),
+                leftmenu:'mngkids'
+            };
+            window.History.pushState(params, null, '/');
+        }
+    });
+    $('.btn_chgcls').button({icons:{primary:'ui-icon-circle-check'}});
+    $('.btn_chgcls').click(function(){
+        var kids_id = $(this).siblings('input[type=hidden][name=kids_id]').val();
+        $("#all_class_list").dialog({
+            title:'組リスト',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("組の変更")').button({icons: {primary: 'ui-icon-shuffle'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+
+                $('img[src$="/img/icon/check.png"]').hide();
+                $('#tbl_all_class_list td p').each(function(){
+                    var clsObj = $(this).children('input[type=hidden][name=class_id]');
+                    if(clsObj.val() == '<?php echo $this->class_id;?>'){
+                        clsObj.siblings('img[src$="/img/icon/check.png').show();
+                    }
+                });
+            },
+            buttons: {
+                "組の変更": function() {
+                    var class_id = '';
+                    $('#tbl_all_class_list td p').each(function(){
+                        var imgObj = $(this).children('img[src$="/img/icon/check.png"]');
+                        if(imgObj.is(':visible')){
+                            class_id = imgObj.siblings('input[type=hidden][name=class_id]').val();
+                        }
+                    });
+                    if(class_id == '<?php echo $this->class_id;?>'){
+                        showInfoMessage(300,'同じ組に移動は出来ません。',2000,'slow');
+                        return;
+                    }
+                    $("#yes_no_common_alert").html('組を変更しますか');
+                    $("#yes_no_common_alert").dialog({
+                        title:'確認',
+                        modal: true,
+                        draggable: false,
+                        closeOnEscape: false,
+                        resizable: false,
+                        height: 'auto',
+                        minHeight: 0,
+                        width: 'auto',
+                        open: function(event, ui) {
+                            setDialogDesign($(this));
+                            $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                            $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+                        },
+                        buttons: {
+                            "はい": function() {
+                                $(this).dialog("close");
+                                $.ajax({
+                                    url: '/mng/changekidsclass',
+                                    type: 'GET',
+                                    dataType: 'json',
+                                    data: {                                        
+                                        kids_id:kids_id,
+                                        class_id:class_id
+                                    },
+                                    beforeSend: function(xhr){
+                                        xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                                    },
+                                    error: function(xhr, status, e){
+                                        console.log(xhr);
+                                        console.log(status);
+                                        console.log(e);
+                                        showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                                    },
+                                    success: function(d){
+                                        console.log(d);
+                                        if(d.status == _SEAR_){
+                                            showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                                        }else{
+                                            if(d.status == '0'){
+                                                getList();
+                                            }else{
+                                                showCommonAlertDialog('エラー',d.message);
+                                            }
+                                        }
+                                    },
+                                    complete: function(){
+                                        $("#all_class_list").dialog('destroy');
+                                    }
+                                });
+                            },
+                            "キャンセル": function() {
+                                $(this).dialog("close");
+                            }
+                        }
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog('destroy');
+                    $('#cls_div_addform').find('input[type=text][name=class_name]').val('');
+                    $('#cls_div_addform').find('input[type=text][name=class_desc]').val('');
+                }
+            }
+        });
+    });
+    $('.btn_voidApproval').button({icons:{primary:'ui-icon-unlocked'}});
+    $('.btn_voidApproval').click(function(){
+        var kids_id = $(this).siblings('input[type=hidden][name=kids_id]').val();
+        $("#yes_no_common_alert").html('未承認の状態に変えますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/mng/voidkidsapproval',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            kids_id:kids_id
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    getList();
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){                            
+                        }
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('#tbl_all_class_list td').click(function(){
+        $('img[src$="/img/icon/check.png"]').hide();
+        var img = $(this).find('img[src$="/img/icon/check.png"]');
+        img.toggle();
+    });
+});
+function getList(){
+    var params = {
+        url:'/mng/kidslist',
+        backbutton_target:true,
+        history_seq:getNewHistorySeq(),
+        leftmenu:'mngkids',
+        class_id:'<?php echo $this->class_id;?>'
+    };
+    window.History.pushState(params, null, '/');
+}
+</script>
+<h2>子供の管理<span></span></h2>
+<?php
+$classCnt = count($this->classlist);
+$i = 1;
+if($classCnt > 0){
+?>
+<table id='tb_title'>
+    <tr>
+        <td style='text-align:left'>
+            <select id='class' style='margin:0px;width:150px'>
+<?php
+    foreach($this->classlist as $class){
+        $class_id = $class['id'];
+        $selected = '';
+        if($class_id == $this->class_id){
+            $selected = 'selected';
+        }
+?>
+            <option value='<?php echo $class['id'];?>' <?php echo $selected;?>><?php echo $class['name'];?>(<?php echo $class['approved_cnt'];?>)</option>
+<?php
+    }
+?>
+            </select>
+        </td>
+    </tr>
+</table>
+<?php
+}
+?>
+<table>
+<?php
+if(count($this->list) > 0 ){
+    foreach ($this->list as $data) {
+?>
+    <tr>
+        <td class='td_picture'>
+            <table class='table_picture'>
+                <tr>
+                    <td width='65px'>
+                        <p style='position:relative'>
+                            <img src='<?php echo $data['img']; ?>' style='width:60px;height:67px;'/>
+                            <img src='<?php echo $data['kids_sex_img']; ?>' style='position:absolute;top:42px;left:35px;'/>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+        <td class='td_data'>
+            <table class='table_data'>
+                <tr>
+                    <td style='background-color:#f7fed8' width='125px'>名前</td>
+                    <td style='text-align:left'><?php echo $data['kids_name'];?></td>
+                </tr>
+                <tr>
+                    <td style='background-color:#f7fed8'>保護者</td>
+                    <td style='text-align:left'><?php echo $data['member_name'];?></td>
+                </tr>
+                <tr>
+                    <td style='background-color:#f7fed8'>誕生日</td>
+                    <td style='text-align:left'><?php echo $data['birthday_str'];?></td>
+                </tr>
+            </table>
+        </td>
+        <td width='200px'>
+            <button class='btn_chgcls'>組の変更</button>
+            <button class='btn_voidApproval'>オフに</button>
+            <input type='hidden' name='kids_id' value='<?php echo $data["kids_id"]?>'/>
+        </td>
+    </tr>
+<?php
+    }
+}
+?>    
+</table>
+<div id='all_class_list' style='display:none'>
+    <div style='width:300px;height:450px;overflow-x:hidden;overflow-y:auto;'>
+    <table id='tbl_all_class_list' style='width:100%;'>
+<?php 
+foreach($this->allclasslist as $class){
+    $checkImgDisplay = 'display:none';
+    if($class['id'] == $this->class_id){
+        $checkImgDisplay = '';
+    }
+?>
+        <tr>
+            <td style='height:40px;text-align:left;padding-left:20px;border-bottom:1px solid #abc;border-top:1px solid #abc'>
+                <p style='position:relative;'>
+                    <?php echo $class['name'];?> [<?php echo $class['desc'];?>]
+                    <img src='/img/icon/check.png' style='width:52px;height:52px;position:absolute;top:-10px;left:230px;<?php echo $checkImgDisplay;?>'/>
+                    <input type='hidden' name='class_id' value='<?php echo $class["id"];?>'/>
+                </p>
+            </td>
+        </tr>
+<?php 
+}
+?>
+    </table>
+    </div>
+</div>

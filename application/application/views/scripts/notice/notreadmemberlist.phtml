@@ -1,0 +1,147 @@
+<style>
+.kids_table{
+    background-color:#e0ecfe;
+}
+.kids_td {
+    width:33%;
+    padding:3px 5px;
+    border-top:1px #abc solid;
+    border-right:1px #abc solid;
+    border-bottom:1px #abc solid;
+    border-left:1px #abc solid;
+}
+</style>
+<script>
+$(function(){
+    $('.kids_table td').css({'border-bottom':'none'});
+    $('#kidsTop td').css({'border-bottom':'none'});
+    var kidsCnt = parseInt('<?php echo count($this->notreadmemberlist);?>');
+    var per = Math.floor(kidsCnt / 3);
+    var kidsDivHeight = 'height:' + (per * 85) + 'px';
+    if(per >= 5){
+        $('#kidsDivCss').css({'height':'400px','overflow':'auto','width':'810px'});
+    }else{
+        $('#kidsDivCss').css({'height':kidsDivHeight});
+    }
+    $('.kids_table').css({'width':'250px'});
+    
+    if('<?php echo $this->not_read_cnt; ?>' == '0'){
+        $('#push_all_target').hide();
+    }
+    $('#push_all_target').button({icons:{primary:'ui-icon-extlink'}});
+    $('#push_all_target').click(function(){
+        $("#yes_no_common_alert").html('プッシュ通知しますか');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/notice/pushnotreadnoticelist',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            notice_id:'<?php echo $this->notice_id; ?>'
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    $("#one_button_common_alert").dialog("close");
+                                    showInfoMessage(300,'プッシュ通知を正常的に送りました。',2000,'slow');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+});
+</script>
+    <table id='kidsTop'>
+        <tr>
+            <td width='200px'>まだ読んでいない人：<font color='red'><?php echo $this->not_read_cnt; ?></font></td>
+            <td>
+                <button id='push_all_target'>まだ読んでいない人にプッシュ通知</button>
+            </td>
+        </tr>
+    </table>
+    <div id='kidsDivCss' style='margin-top:5px;'>
+    <table id='outer_table'>
+<?php 
+$kidsCnt = count($this->notreadmemberlist);
+$i = 1;
+if($kidsCnt > 0){
+    foreach($this->notreadmemberlist as $kids){
+        if($i % 3 == 1){
+?>
+        <tr>
+<?php
+        }
+?>
+            <td class='kids_td'>
+                <table class='kids_table'>
+                    <tr>
+                        <td width='65px'>
+                            <p style='position:relative'>
+                                <img src='<?php echo $kids['kids_img']; ?>' style='width:60px;height:67px;'/>
+                                <img src='<?php echo $kids['kids_sex_img']; ?>' style='position:absolute;top:42px;left:35px;'/>
+                            </p>
+                        </td>
+                        <td style='text-align:left'>
+                            <p style='position:relative'>
+                                <?php echo $kids['kids_name']; ?>(<?php echo $kids['member_name']; ?>)<br>
+                                <?php echo $kids['birthday_str']; ?><br>
+                                <?php echo $kids['class_name']; ?>&nbsp;<?php echo $kids['phonenum']; ?>
+                                <img src='/img/icon/check.png' style='width:52px;height:52px;position:absolute;top:15px;left:130px;'/>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+<?php
+        if($i % 3 == 0){
+?>
+        </tr>
+<?php
+        }else if($kidsCnt == $i){
+?>
+        </tr>
+<?php
+        }
+        $i++;
+    }
+}
+?>
+    </table>
+    </div>

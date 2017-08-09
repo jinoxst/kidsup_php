@@ -1,0 +1,31 @@
+<style>
+.ui-datepicker {font-size: 12px !important;}
+</style>
+<script>
+$(function(){
+	$("#schedule_date").datepicker({
+        //inline: true,
+        //minDate: 0,
+        defaultDate: new Date(),
+        beforeShow: function() {
+        },
+        /*onSelect: function(date) {
+            if(date < $.datepicker.formatDate('yymmdd', new Date())){
+                showCommonAlertDialog('エラー','過去の日付は選択出来ません。');
+                $("#schedule_date").val('');
+                return false;
+            }else{
+                $("#schedule_date").val(date);
+            }
+        }*/
+    });
+});
+</script>
+
+<table style='width:400px'>
+<tr>
+    <td width='100px' style='background-color:#f7fed8;border: solid 1px #abc;text-align:center;'>日付選択</td>
+    <td style='border: solid 1px #abc'><input type='text' id='schedule_date' style='border-radius:0px;border:1px #abc solid'/><input autofocus style='display:none'></td>
+</tr>
+</table>
+<input autofocus style='display:none'>

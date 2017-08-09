@@ -1,0 +1,138 @@
+<style>
+table#tb_chgpwform td:nth-child(2) select:nth-child(1){
+    border:1px #abc solid;
+    width:250px;
+    float: left;
+}
+div.btn_area{
+    width:250px;
+}
+.kids_td {
+    width:33%;
+    padding:3px 5px;
+    border-top:1px #abc solid;
+    border-right:1px #abc solid;
+    border-bottom:1px #abc solid;
+    border-left:1px #abc solid;
+}
+textarea {
+    resize: vertical;
+}
+#warn_msg {
+    margin-top: 10px;
+    color: red;
+    font-size: 0.8em;
+}
+.kids_table{
+    background-color:#e0ecfe;
+}
+</style>
+<script>
+$(function(){
+    $('.kids_table td').css({'border-bottom':'none'});
+    $('#chgpw').button({icons:{primary:'ui-icon-circle-check'}});
+    $('#chgpw').click(function(){
+        var current_pw = $.trim($('input[type=password][name=current_pw]').val());
+        if(current_pw == ''){
+            $('input[type=password][name=current_pw]').focus();
+            showCommonAlertDialog('注意','現在のパスワードを入力して下さい。');
+            return;
+        }
+        var new_pw = $.trim($('input[type=password][name=new_pw]').val());
+        if(new_pw == ''){
+            $('input[type=password][name=new_pw]').focus();
+            showCommonAlertDialog('注意','新しいパスワードを入力して下さい。');
+            return;
+        }
+        var new_pw2 = $.trim($('input[type=password][name=new_pw2]').val());
+        if(new_pw2 == ''){
+            $('input[type=password][name=new_pw2]').focus();
+            showCommonAlertDialog('注意','確認のため、パスワードをもう一度入力して下さい。');
+            return;
+        }
+        if(new_pw != new_pw2){
+            $('input[type=password][name=new_pw]').val('');
+            $('input[type=password][name=new_pw2]').val('');
+            $('input[type=password][name=new_pw]').focus();
+            showCommonAlertDialog('注意','新しいパスワードをもう一度確認して下さい。');
+            return;
+        }
+        $("#yes_no_common_alert").html('変更しますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/setting/chgpw',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            current_pw:current_pw,
+                            new_pw:new_pw
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    $('input[type=password][name=current_pw]').val('');
+                                    $('input[type=password][name=new_pw]').val('');
+                                    $('input[type=password][name=new_pw2]').val('');
+                                    showInfoMessage(300,'パスワードを正常にを変更しました。',2000,'slow');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+});
+</script>
+<h2>ユーザ情報変更<span></span></h2>
+<table style='width:940px' id='tb_chgpwform'>
+    <tr>
+        <td style='width=170px;background-color:#f7fed8'><font color='red'>*</font>現在のパスワード</td>
+        <td style='text-align:left'><input type='password' name="current_pw" style='margin:0px;width:400px;border-radius:0px;border:1px #abc solid'/></td>
+    </tr>
+    <tr>
+        <td style='width=170px;background-color:#f7fed8'><font color='red'>*</font>新しいパスワード</td>
+        <td style='text-align:left'><input type='password' name="new_pw" style='margin:0px;width:400px;border-radius:0px;border:1px #abc solid'/></td>
+    </tr>
+    <tr>
+        <td style='width=170px;background-color:#f7fed8'><font color='red'>*</font>パスワード確認</td>
+        <td style='text-align:left'><input type='password' name="new_pw2" style='margin:0px;width:400px;border-radius:0px;border:1px #abc solid'/></td>
+    </tr>
+</table>
+<div class="btn_area">
+    <button id='chgpw'>変更</button>
+</div>

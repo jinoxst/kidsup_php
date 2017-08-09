@@ -1,0 +1,46 @@
+<?php
+    foreach ($this->replyList as $reply) {
+?>
+            <table class='none_border_bottom_td' id='replyTable'>
+                <tr>
+                    <td rowspan='2' width='32px'><img src='/img/icon/reply.png'/></td>
+                    <td width='60px'><img src='<?php echo $reply["img"] ?>' width='60px'></td>
+                    <td style='text-align:left'><?php echo $reply['writer_name'] ?><br><?php echo $reply['member_type_desc'] ?><br><?php echo $reply['createtime'] ?></td>
+                </tr>
+                <tr style='border-bottom:1px #abc solid;'>
+                    <td colspan='2' style='text-align:left'><?php echo $reply['contents'] ?></td>
+                </tr>
+            </table>
+<?php
+    }
+    if($this->pagenator['show'] == '1'){
+?>
+            <table class='none_border_bottom_td'>
+                <tr class="page_control">
+                    <td colspan='2'>
+<?php
+        if($this->pagenator['preGroupFlag'] == '1'){
+?>
+                        <a href='javascript:goPrevPageGroup();'>前へ</a>
+<?php
+        }else{
+?>
+                        <p>前へ</p>
+<?php
+        }
+        if($this->pagenator['nextGroupFlag'] == '1'){
+?>
+                        <a href='javascript:goNextPageGroup();'>次へ</a>
+<?php
+        }else{
+?>
+                        <p>次へ</p>
+<?php
+        }
+?>
+                    </td>
+                </tr>
+            </table>
+<?php
+    }
+?>

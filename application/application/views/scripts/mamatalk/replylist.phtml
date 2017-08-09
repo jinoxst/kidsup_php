@@ -1,0 +1,114 @@
+<script>
+$(function(){
+    $('.delete_reply').button({icons:{primary:'ui-icon-trash'}});
+    $('#delete_reply').click(function(){
+        var reply_id = $(this).siblings('#reply_id').val();
+        $("#yes_no_common_alert").html('返信を削除しますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/mamatalk/deletemamatalkreply',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            mamatalk_id:'<?php echo $this->mamatalk_id; ?>',
+                            reply_id:reply_id
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    getReplyList($('input[type="hidden"][name="reply_pageno"]').val());
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+});
+</script>
+<input type='hidden' name='reply_cnt' id='reply_cnt' value='<?php echo $this->reply_cnt;?>'/>
+<?php
+    foreach ($this->replyList as $reply) {
+?>
+            <table class='none_border_bottom_td' id='replyTable'>
+                <tr>
+                    <td rowspan='2' width='32px'><img src='/img/icon/reply.png'/></td>
+                    <td width='60px'><img src='<?php echo $reply["img"] ?>' width='60px'></td>
+                    <td style='text-align:left'><?php echo $reply['writer_name'] ?><br><?php echo $reply['member_type_desc'] ?><br><?php echo $reply['createtime'] ?></td>
+                    <td style='text-align:right'><div class='valign_middle'>
+                        <?php if($reply['member_id'] == $this->loginedInfo['member_id']){?><button class='delete_reply'>削除</button><?php }?>
+                        <input type='hidden' name='reply_id' id='reply_id' value='<?php echo $reply["reply_id"];?>'/>
+                    </div></td>
+                </tr>
+                <tr style='border-bottom:1px #abc solid;'>
+                    <td colspan='3' style='text-align:left'><?php echo $reply['contents'] ?></td>
+                </tr>
+            </table>
+<?php
+    }
+    if($this->pagenator['show'] == '1'){
+?>
+            <table class='none_border_bottom_td'>
+                <tr class="page_control">
+                    <td colspan='2'>
+<?php
+        if($this->pagenator['preGroupFlag'] == '1'){
+?>
+                        <a href='javascript:goPrevPageGroup();'>前へ</a>
+<?php
+        }else{
+?>
+                        <p>前へ</p>
+<?php
+        }
+        if($this->pagenator['nextGroupFlag'] == '1'){
+?>
+                        <a href='javascript:goNextPageGroup();'>次へ</a>
+<?php
+        }else{
+?>
+                        <p>次へ</p>
+<?php
+        }
+?>
+                    </td>
+                </tr>
+            </table>
+<?php
+    }
+?>

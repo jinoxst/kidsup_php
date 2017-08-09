@@ -1,0 +1,121 @@
+<?php include $_SERVER['DOCUMENT_ROOT']."/include/header.php"; ?>
+<style>
+	html, body {
+	  height: 100%;
+	}
+	div#wrap {
+		width: 580px;
+		top: 45%;
+		margin:0px auto 20px;
+		position: absolute;
+		left: 50%;
+    	margin-right: -50%;
+    	transform: translate(-50%, -50%);
+    	-moz-transform: translate(-50%, -50%);
+    	-webkit-transform: translate(-50%, -50%);
+	}
+	input[type=text],
+	input[type=password],
+	input[type=email]{
+		padding:5px 10px;
+	}
+	table#tb_issuepwform{
+		width:500px;
+		margin:10px auto;
+	}
+	table#tb_issuepwform th{
+		color:#fff;
+		text-align:right;
+	}
+	table#tb_issuepwform td{
+		padding: 5px 10px;
+		border-top:1px #abc solid;
+		border-bottom:1px #abc solid;
+	}
+	table#tb_issuepwform td input[type=text],
+	table#tb_issuepwform td input[type=password],
+	table#tb_issuepwform td input[type=email],
+	table#tb_issuepwform td input[type=text]{
+		width:300px;
+	}
+</style>
+<script>
+$(function(){
+	$('#btn_issuepw').button({icons:{primary:'ui-icon-circle-triangle-e'}});
+	$('#btn_issuepw').click(function(){
+		var email = $.trim($('input[type=text][name=email]').val());
+		var sender = $.trim($('input[type=text][name=sender]').val());
+		if(email == ''){
+			$('input[type=text][name=email]').focus();
+            showCommonAlertDialog('注意','Emailを入力して下さい。');
+            return;
+		}
+		if(isValidEmailAddress(email) === false){
+	        $('input[type=text][name=email]').focus();
+	        showCommonAlertDialog('注意','Email形式じゃありません。Emailを直して下さい。');
+	        return;
+	    }
+		if(sender == ''){
+			$('input[type=text][name=sender]').focus();
+            showCommonAlertDialog('注意','お名前を入力して下さい。');
+            return;
+		}
+		$.ajax({
+	        url: '/login/issuepw',
+	        type: 'POST',
+	        dataType: 'json',
+	        data: {email:email, sender:sender},
+	        async: true,
+	        beforeSend: function(xhr){
+	            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+	        },
+	        success: function(d){
+	            if(d.status == '0'){
+	            	if(d.result == '1'){
+	            		$('#btn_issuepw').hide();
+	                	showInfoMessage(600,'メールを送信しました。メールの内容に従ってパスワードの再発行を進めて下さい。',3000,'slow');
+	            	}else{
+	            		showInfoMessage(300,'Emailもう一度確認した下さい。',2000,'slow');
+	            	}
+	            }else{
+	                showCommonAlertDialog('エラー',d.message);
+	            }
+	        },
+	        error: function(xhr, status, e){
+	            console.log(xhr);
+	            console.log(status);
+	            console.log(e);
+	            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+	        },
+	        complete: function(){}
+	    });
+	});
+	$('#tb_return').button({icons:{primary:'ui-icon-circle-triangle-w'}});
+	$('#tb_return').click(function(){
+		location.href = '/login/';
+	});
+});
+</script>
+    <div id="wrap">
+	    <header>
+			<h1><img src="/img/logo_slim.png">KidsUp</h1>
+		</header>
+		<div style='margin-top:50px;'>
+	    	再発行に関する案内をEmailへ送信します。
+			<table style='width:100%' id='tb_issuepwform'>
+			    <tr>
+			        <td style='width=170px;background-color:#f7fed8'><font color='red'>*</font>Email</td>
+			        <td style='text-align:left'><input type='text' name="email" style='margin:0px;width:300px;border-radius:0px;border:1px #abc solid' value='<?php echo $this->email;?>'/></td>
+			    </tr>
+			    <tr>
+			        <td style='width=170px;background-color:#f7fed8'><font color='red'>*</font>お名前</td>
+			        <td style='text-align:left'><input type='text' name="sender" style='margin:0px;width:300px;border-radius:0px;border:1px #abc solid'/></td>
+			    </tr>
+			</table>
+			<div class="btn_area">
+			    <button id='btn_issuepw'>パスワード再発行</button>
+			    <button id='tb_return'>戻る</button>
+			</div>
+		</div>
+	</div>
+<?php include $_SERVER['DOCUMENT_ROOT']."/include/footer.php"; ?>

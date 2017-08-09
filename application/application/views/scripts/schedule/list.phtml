@@ -1,0 +1,493 @@
+<style>
+#calendar {
+    margin: 0 auto;
+}
+div#contents table th {
+    padding: 0px;
+    background: #ffffff;
+    color: #000000;
+    height: 21px;
+}
+div#contents table td {
+    border-bottom: 1px #ddd solid;
+    padding: 0px;
+    text-align: left;
+}
+div#contents table td.fc-day-number {
+    border-bottom: none;
+}
+div#contents table td.fc-event-container {
+    border-bottom: none;
+}
+div#contents table td.fc-more-cell {
+    border-bottom: none;
+}
+div#event_detail table td {
+    border: 1px #ddd solid;
+    padding: 5px;
+}
+</style>
+<script>
+var _y = '<?php echo $this->defaultYear;?>';
+var _m = '<?php echo $this->defaultMonth;?>';
+var CURRENT_PAGE_MONTH = new Date(parseInt(_y), parseInt(_m)-1, 1).toUTCString();
+$(function(){
+    var data = '<?php echo $this->data;?>';
+    $('#calendar').fullCalendar({
+        height: 700,
+        defaultDate: '<?php echo $this->defaultYear;?>-<?php echo $this->defaultMonth;?>-01',
+        header: {
+            left: 'title',
+            right: 'today prevYear,prev,next,nextYear',
+        },
+        lang: 'ja',
+        eventLimit: true, // allow "more" link when too many events
+        events: JSON.parse(data),
+        editable: true,
+        selectable: true,
+        select: function(start, end) {
+            $('#tooltip_4_add_'+getDateFormat(start)).trigger('click');
+        },
+        prev: function(m){
+            scheduleList(m);
+        },
+        next: function(m){
+            scheduleList(m);
+        },
+        prevYear: function(m){
+            scheduleList(m);
+        },
+        nextYear: function(m){
+            scheduleList(m);
+        },
+        today: function(m){
+            scheduleList(m);
+        },
+        dayRender: function(m){
+            var date = getDateFormat(m);
+            var html =  "<div id='event_detail' style='width:500px;height;500px;'>" + 
+                        "<table>" + 
+                        "   <tr>" + 
+                        "        <td width='100px' style='background-color:#f7fed8;text-align:center'>日付</td>" + 
+                        "        <td>"+date+"</td>" + 
+                        "    </tr>" + 
+                        "    <tr>" + 
+                        "        <td width='100px' style='background-color:#f7fed8;text-align:center'><font color='red'>*</font>タイトル</td>" + 
+                        "        <td><input type='text' name='schedule_title' style='margin:0px;width:400px;border-radius:0px;border:1px #abc solid'></td>" + 
+                        "    </tr>" + 
+                        "    <tr>" + 
+                        "        <td width='100px' style='background-color:#f7fed8;text-align:center'>内容</td>" + 
+                        "        <td><textarea name='schedule_detail' cols='80' rows='6' wrap='hand' style='width:400px;border:1px #abc solid'></textarea></td>" + 
+                        "    </tr>" + 
+                        "</table>" + 
+                        "<div style='text-align:center;margin-top:5px;'><button id='add_btn_"+date+"' style='padding:0px 3px'>追加</button></button><button id='add_cls_btn_"+date+"' style='padding:0px 3px'>閉じる</button></div>"+
+                        "</div>";
+            $('#tooltip_4_add_'+date).tooltipster({
+                theme: 'tooltipster-shadow',
+                contentAsHTML: true,
+                autoClose: false,
+                trigger: 'click',
+                content:$(html),
+                functionReady: function(){
+                    tooltipCloserInit();
+                    $('#add_btn_'+date).button({icons:{primary:'ui-icon-circle-check'}});
+                    $('#add_btn_'+date).click(function(){
+                        $('html').unbind('click');
+                        var scheduleTitle = $.trim($('input[type=text][name=schedule_title]').val());
+                        if(scheduleTitle == ''){
+                            $('input[type=text][name=schedule_title]').focus();
+                            showCommonAlertDialog('注意','タイトルを入力して下さい。');
+                            return;
+                        }
+                        $("#yes_no_common_alert").html('追加しますか？');
+                        $("#yes_no_common_alert").dialog({
+                            title:'確認',
+                            modal: true,
+                            draggable: false,
+                            closeOnEscape: false,
+                            resizable: false,
+                            height: 'auto',
+                            minHeight: 0,
+                            width: 'auto',
+                            open: function(event, ui) {
+                                setDialogDesign($(this));
+                                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+                            },
+                            buttons: {
+                                "はい": function() {
+                                    $(this).dialog("close");
+                                    $.ajax({
+                                        url: '/schedule/add',
+                                        type: 'POST',
+                                        dataType: 'json',
+                                        data: {
+                                            date:date.replace(/-/g,''),
+                                            title:scheduleTitle,
+                                            detail:$('textarea[name=schedule_detail]').val(),
+                                            time:''
+                                        },
+                                        beforeSend: function(xhr){
+                                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                                        },
+                                        error: function(xhr, status, e){
+                                            console.log(xhr);
+                                            console.log(status);
+                                            console.log(e);
+                                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                                        },
+                                        success: function(d){
+                                            console.log(d);
+                                            if(d.status == _SEAR_){
+                                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                                            }else{
+                                                if(d.status == '0'){
+                                                    scheduleList({_d:CURRENT_PAGE_MONTH});
+                                                }else{
+                                                    showCommonAlertDialog('エラー',d.message);
+                                                }
+                                            }
+                                        },
+                                        complete: function(){
+                                            tooltipCloserInit();
+                                        }
+                                    });
+                                },
+                                "キャンセル": function() {
+                                    $(this).dialog("close");
+                                    tooltipCloserInit();
+                                }
+                            }
+                        });
+                    });
+                    $('#add_cls_btn_'+date).button({icons:{primary:'ui-icon-circle-close'}});
+                    $('#add_cls_btn_'+date).click(function(){
+                        tooltipCloserInit();
+                        $('#tooltip_4_add_'+date).tooltipster('hide');
+                    });
+                    $('.tooltipster-base').click(function(event){
+                        return false;
+                    });
+                }
+            });
+        },
+        eventAfterRender: function(m){
+            var html = '';
+            if(m.updatable == '1'){
+                html =  "<div id='event_detail' style='width:500px;height;500px;'>" + 
+                    "<table>" + 
+                    "    <tr>" + 
+                    "        <td width='100px' style='background-color:#f7fed8;text-align:center'>日付</td>" + 
+                    "        <td>"+m._start._i+"</td>" + 
+                    "    </tr>" + 
+                    "    <tr>" + 
+                    "        <td width='100px' style='background-color:#f7fed8;text-align:center'><font color='red'>*</font>タイトル</td>" + 
+                    "        <td><input type='text' name='schedule_title' value='"+m.title+"' style='margin:0px;width:400px;border-radius:0px;border:1px #abc solid'></td>" + 
+                    "    </tr>" + 
+                    "    <tr>" + 
+                    "        <td width='100px' style='background-color:#f7fed8;text-align:center'>内容</td>" + 
+                    "        <td><textarea name='schedule_detail' cols='80' rows='6' wrap='hand' style='width:400px;border:1px #abc solid'>"+m.contents+"</textarea></td>" + 
+                    "    </tr>" + 
+                    "</table>" + 
+                    "<div style='text-align:center;margin-top:5px;'><button id='upt_btn_"+m.id+"' style='padding:0px 3px'>修正</button><button id='del_btn_"+m.id+"' style='padding:0px 3px'>削除</button><button id='cls_btn_"+m.id+"' style='padding:0px 3px'>閉じる</button></div>"+
+                    "</div>";
+            }else{
+                html =  "<div id='event_detail' style='width:500px;height;500px;'>" + 
+                    "<table>" + 
+                    "    <tr>" + 
+                    "        <td width='100px' style='background-color:#f7fed8;text-align:center'>日付</td>" + 
+                    "        <td><div id='schedule_date'>"+m._start._i+"</div></td>" + 
+                    "    </tr>" + 
+                    "    <tr>" + 
+                    "        <td width='100px' style='background-color:#f7fed8;text-align:center'>タイトル</td>" + 
+                    "        <td><div id='schedule_title'>"+m.title+"</div></td>" + 
+                    "    </tr>" + 
+                    "    <tr>" + 
+                    "        <td width='100px' style='background-color:#f7fed8;text-align:center'>内容</td>" + 
+                    "        <td><div id='schedule_detail'>"+m.contents+"</div></td>" + 
+                    "    </tr>" + 
+                    "</table>" + 
+                    "<div style='text-align:center;margin-top:5px;'><button id='upt_btn_"+m.id+"' style='padding:0px 3px'>修正</button><button id='del_btn_"+m.id+"' style='padding:0px 3px'>削除</button><button id='cls_btn_"+m.id+"' style='padding:0px 3px'>閉じる</button></div>"+
+                    "</div>";
+            }
+            
+            $('#'+m.id).parent().tooltipster({
+                theme: 'tooltipster-shadow',
+                contentAsHTML: true,
+                autoClose: false,
+                trigger: 'click',
+                content:$(html),
+                functionReady: function(){
+                    tooltipCloserInit();
+                    if(m.updatable == '1'){
+                        $('input[type=text][name=schedule_title]').val(m.title);
+                        $('textarea[name=schedule_detail]').val(m.contents);
+                        $('#upt_btn_'+m.id).show();
+                        $('#upt_btn_'+m.id).button({icons:{primary:'ui-icon-circle-check'}});
+                        $('#upt_btn_'+m.id).click(function(){
+                            $('html').unbind('click');
+                            var scheduleTitle = $.trim($('input[type=text][name=schedule_title]').val());
+                            if(scheduleTitle == ''){
+                                $('input[type=text][name=schedule_title]').focus();
+                                showCommonAlertDialog('注意','タイトルを入力して下さい。');
+                                return;
+                            }
+                            $("#yes_no_common_alert").html('更新しますか？');
+                            $("#yes_no_common_alert").dialog({
+                                title:'確認',
+                                modal: true,
+                                draggable: false,
+                                closeOnEscape: false,
+                                resizable: false,
+                                height: 'auto',
+                                minHeight: 0,
+                                width: 'auto',
+                                open: function(event, ui) {
+                                    setDialogDesign($(this));
+                                    $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                                    $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+                                },
+                                buttons: {
+                                    "はい": function() {
+                                        $(this).dialog("close");
+                                        $.ajax({
+                                            url: '/schedule/update',
+                                            type: 'POST',
+                                            dataType: 'json',
+                                            data: {
+                                                id:m.id,
+                                                title:scheduleTitle,
+                                                detail:$('textarea[name=schedule_detail]').val()
+                                            },
+                                            beforeSend: function(xhr){
+                                                xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                                            },
+                                            error: function(xhr, status, e){
+                                                console.log(xhr);
+                                                console.log(status);
+                                                console.log(e);
+                                                showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                                            },
+                                            success: function(d){
+                                                console.log(d);
+                                                if(d.status == _SEAR_){
+                                                    showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                                                }else{
+                                                    if(d.status == '0'){
+                                                        scheduleList({_d:CURRENT_PAGE_MONTH});
+                                                    }else{
+                                                        showCommonAlertDialog('エラー',d.message);
+                                                    }
+                                                }
+                                            },
+                                            complete: function(){
+                                                tooltipCloserInit();
+                                            }
+                                        });
+                                    },
+                                    "キャンセル": function() {
+                                        $(this).dialog("close");
+                                        tooltipCloserInit();
+                                    }
+                                }
+                            });
+                        });
+                    }else{
+                        $('#upt_btn_'+m.id).hide();
+                    }
+                    if(m.deletable == '1'){
+                        $('#del_btn_'+m.id).show();
+                        $('#del_btn_'+m.id).button({icons:{primary:'ui-icon-scissors'}});
+                        $('#del_btn_'+m.id).click(function(){
+                            $('html').unbind('click');
+                            $("#yes_no_common_alert").html('削除しますか？');
+                            $("#yes_no_common_alert").dialog({
+                                title:'確認',
+                                modal: true,
+                                draggable: false,
+                                closeOnEscape: false,
+                                resizable: false,
+                                height: 'auto',
+                                minHeight: 0,
+                                width: 'auto',
+                                open: function(event, ui) {
+                                    setDialogDesign($(this));
+                                    $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                                    $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+                                },
+                                buttons: {
+                                    "はい": function() {
+                                        $(this).dialog("close");
+                                        $.ajax({
+                                            url: '/schedule/delete',
+                                            type: 'GET',
+                                            dataType: 'json',
+                                            data: {
+                                                id:m.id
+                                            },
+                                            beforeSend: function(xhr){
+                                                xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                                            },
+                                            error: function(xhr, status, e){
+                                                console.log(xhr);
+                                                console.log(status);
+                                                console.log(e);
+                                                showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                                            },
+                                            success: function(d){
+                                                console.log(d);
+                                                if(d.status == _SEAR_){
+                                                    showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                                                }else{
+                                                    if(d.status == '0'){
+                                                        scheduleList({_d:CURRENT_PAGE_MONTH});
+                                                    }else{
+                                                        showCommonAlertDialog('エラー',d.message);
+                                                    }
+                                                }
+                                            },
+                                            complete: function(){
+                                                tooltipCloserInit();
+                                            }
+                                        });
+                                    },
+                                    "キャンセル": function() {
+                                        $(this).dialog("close");
+                                        tooltipCloserInit();
+                                    }
+                                }
+                            });
+                        });
+                    }else{
+                        $('#del_btn_'+m.id).hide();
+                    }
+
+                    $('#cls_btn_'+m.id).button({icons:{primary:'ui-icon-circle-close'}});
+                    $('#cls_btn_'+m.id).click(function(){
+                        tooltipCloserInit();
+                        $('#'+m.id).parent().tooltipster('hide');
+                    });
+                    $('.tooltipster-base').click(function(event){
+                        return false;
+                    });
+                }
+            });
+        },
+        eventDragStop: function(m){
+            if(m && m.end){
+                if(m.deletable == '1'){
+                    $.ajax({
+                        url: '/schedule/chgdate',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            id:m._id,
+                            date:getDateFormat(m.end).replace(/-/g,'')
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    scheduleList({_d:CURRENT_PAGE_MONTH});
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){
+                            tooltipCloserInit();
+                        }
+                    });
+                }else{
+                    //changing date is impossible
+                    scheduleList({_d:CURRENT_PAGE_MONTH});
+                }
+            }
+        }
+    });
+    $('html').click(function(){hideTooltip();});
+});
+
+function hideTooltip(){
+    $('.tooltipster-base').each(function(idx){
+        var event_id = '';
+        var btn_id = $(this).find('button[id^=cls_btn_]').attr('id');
+        if(btn_id){
+            event_id = btn_id.replace('cls_btn_','');
+            $('#'+event_id).parent().tooltipster('hide');
+        }else{
+            btn_id = $(this).find('button[id^=popover_cls_btn_]').attr('id');
+            if(btn_id){
+                event_id = btn_id.replace('popover_cls_btn_','');
+                $('#popover_'+event_id).parent().tooltipster('hide');
+            }else{
+                btn_id = $(this).find('button[id^=add_cls_btn_]').attr('id');
+                if(btn_id){
+                    event_id = btn_id.replace('add_cls_btn_','');
+                    $('#tooltip_4_add_'+event_id).tooltipster('hide');
+                }
+            }
+        }
+    });
+}
+
+function tooltipCloserInit(){
+    setTimeout(function(){
+        $('html').click(function(){hideTooltip();});
+    },300);
+}
+
+function getDateFormat(v){
+    var d = new Date(v._d);
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1;
+    m = (m < 10) ? '0' + m : m;
+    var day = d.getDate();
+    day = (day < 10) ? '0' + day : day;
+    return y + '-' + m + '-' + day;
+}
+
+function scheduleList(v){
+    var date = v._d;
+    CURRENT_PAGE_MONTH = date;
+    var d = new Date(date);
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1;
+    var month = y + '' + (m < 10 ? '0' + m : m);
+    var params = {
+        url:'/schedule/list',
+        month:month,
+        backbutton_target:true,
+        history_seq:getNewHistorySeq()
+    };
+    window.History.pushState(params, null, '/');
+}
+</script>
+<div id='calendar'></div>
+<div id='event_detail' style='width:500px;height;500px;display:none;'>
+    <table>
+        <tr>
+            <td width='100px' style='background-color:#f7fed8;text-align:center'>日付</td>
+            <td><div id='schedule_date'></div></td>
+        </tr>
+        <tr>
+            <td width='100px' style='background-color:#f7fed8;text-align:center'>タイトル</td>
+            <td><div id='schedule_title'></div></td>
+        </tr>
+        <tr>
+            <td width='100px' style='background-color:#f7fed8;text-align:center'>内容</td>
+            <td><div id='schedule_detail'></div></td>
+        </tr>
+    </table>
+</div>

@@ -1,0 +1,142 @@
+<style>
+table#tb_mamatalk_addform td:nth-child(2) select:nth-child(1){
+    border:1px #abc solid;
+    width:250px;
+    float: left;
+}
+div.btn_area{
+    width:250px;
+}
+textarea {
+    resize: vertical;
+}
+.dropzone {
+    border: 2px dashed #0087F7;
+    border-radius:20px;
+}
+#warn_msg {
+    margin-top: 10px;
+    color: red;
+    font-size: 0.8em;
+}
+</style>
+<script>
+$(function(){
+    $('#mamatalk_add').button({icons:{primary:'ui-icon-pencil'}});
+    $('#mamatalk_add').click(function(){
+        if($.trim($('#mamatalk_title').val()) == ''){
+            $('#mamatalk_title').val('');
+            $('#mamatalk_title').focus();
+            showCommonAlertDialog('注意','ママトークのタイトルを入力して下さい。');
+            return;
+        }
+        if($.trim($('#mamatalk_contents').val()) == ''){
+            $('#mamatalk_contents').val('');
+            $('#mamatalk_contents').focus();
+            showCommonAlertDialog('注意','ママトークの内容を入力して下さい。');
+            return;
+        }
+        var imageFileStr = '';
+        $('.dz-preview.dz-image-preview.dz-processing.dz-success.dz-complete>.dz-details>.dz-filename>span').each(function(idx, el){
+            imageFileStr += $(this).text() + ';'
+        });
+        $("#yes_no_common_alert").html('ママトークを作成しますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/mamatalk/postcontents',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            title:$.trim($('#mamatalk_title').val()),
+                            contents:$.trim($('#mamatalk_contents').val()),
+                            image_file_str:imageFileStr
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    $('#mamatalk_add_cancel').trigger('click');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('#mamatalk_add_cancel').button({icons:{primary:'ui-icon-arrowreturnthick-1-w'}});
+    $('#mamatalk_add_cancel').click(function(){
+        var params = {
+            url:'/mamatalk/list',
+            class_id:'<?php echo $this->class_id;?>',
+            pageno:$('#pageno').val(),
+            trigger:$('#trigger').val(),
+            backbutton_target:true,
+            history_seq:getNewHistorySeq()
+        };
+        window.History.pushState(params, null, '/');
+    });
+});
+</script>
+<h2>ママトーク<span>ママトーク内容を作成します。</span></h2>
+<table style='width:940px' id='tb_mamatalk_addform'>
+    <tr>
+        <td width='170px' style='background-color:#f7fed8'><font color='red'>*</font>タイトル</td>
+        <td style='text-align:left'><input type='text' name="mamatalk_title" id="mamatalk_title" style='margin:0px;width:400px;border-radius:0px;border:1px #abc solid' /></td>
+    </tr>
+    <tr>
+        <td style='width=190px;background-color:#f7fed8'><font color='red'>*</font>内容</td>
+        <td><textarea name="mamatalk_contents" id="mamatalk_contents" cols="120" rows="6" wrap="hand" style='width:750px;border:1px #abc solid'></textarea></td>
+    </tr>
+    <tr>
+        <td style='background-color:#f7fed8'>写真添付<br><div id='warn_msg'>(利用可能な形式：jpg/jpeg/png<br>写真のサイズ：4MB以下<br>同時添付数：10個まで)</div></td>
+        <td>
+            <div id="dropbox">
+                <form action="" class="uploadform dropzone dz-clickable">
+                    <div class="dz-default dz-message">
+                        <span>写真ファイルをDrag & Dropするかここをクリックして下さい。</span>
+                        <br>
+                        <span class="note">(Drag & Drop Images or Click here)</span>
+                    </div>
+                </form>
+            </div>
+        </td>
+    </tr>
+</table>
+<div class="btn_area">
+    <button id='mamatalk_add'>作成</button>
+    <button id='mamatalk_add_cancel'>キャンセル</button>
+</div>

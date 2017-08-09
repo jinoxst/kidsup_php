@@ -1,0 +1,175 @@
+<style>
+div.btn_area{
+    width:250px;
+}
+textarea {
+    resize: vertical;
+}
+.dropzone {
+    border: 2px dashed #0087F7;
+    border-radius:20px;
+}
+#warn_msg {
+    margin-top: 10px;
+    color: red;
+    font-size: 0.8em;
+}
+.ui-datepicker {font-size: 12px !important;}
+</style>
+<script>
+$(function(){
+    $('#dailymenu_add').click(function(){
+        var date = $.trim($('#dailymenu_date').val());
+        if(date){
+            if(date.length != 8){
+                $('#dailymenu_date').focus();
+                showCommonAlertDialog('エラー','日付を確認して下さい。');
+                return;
+            }
+        }else{
+            $('#dailymenu_date').focus();
+            showCommonAlertDialog('エラー','日付を入力して下さい。');
+            return;
+        }
+        if($.trim($('#dailymenu_title').val()) == ''){
+            $('#dailymenu_title').val('');
+            $('#dailymenu_title').focus();
+            showCommonAlertDialog('注意','給食の内容を入力して下さい。');
+            return;
+        }
+        var imageFileStr = '';
+        $('.dz-preview.dz-image-preview.dz-processing.dz-success.dz-complete>.dz-details>.dz-filename>span').each(function(idx, el){
+            imageFileStr += $(this).text() + ';'
+        });
+        if(imageFileStr == ''){
+            showCommonAlertDialog('注意','写真を選んでください。');
+            return;
+        }
+        $("#yes_no_common_alert").html('給食を作成しますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/dailymenu/postcontents',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            date:date,
+                            title:$.trim($('#dailymenu_title').val()),
+                            image_file_str:imageFileStr
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    $('#dailymenu_add_cancel').trigger('click');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $("#dailymenu_date").datepicker({
+        minDate: 0,
+        defaultDate: new Date(),
+        beforeShow: function() {
+        }
+    });
+    Dropzone.autoDiscover = false; // keep this line if you have multiple dropzones in the same page
+    $(".uploadform").dropzone({
+        acceptedFiles: _IMAGE_UPLOAD_ACCEPTED_FILES_,
+        url: '/dailymenu/uploadimage',
+        maxFiles: 1,
+        maxFilesize: _IMAGE_UPLOAD_MAX_FILE_SIZE_,
+        dictFileTooBig: "ファイルが大きすぎます。({{filesize}}MB) 最大サイズ: {{maxFilesize}}MB",
+        dictInvalidFileType: "画像ファイル以外は対応できません。",
+        dictMaxFilesExceeded: "一度にアップロード出来るのは1ファイルまでです。",
+        addRemoveLinks: true,
+        sending: function(file, xhr, formData){
+            formData.append('action', 'dailymenu');
+        },
+        dzstart: function(){
+            if($('#dailymenu_add').is(':visible') === true || $('#dailymenu_add_cancel').is(':visible') === true){
+                $('#dailymenu_add').hide();
+                $('#dailymenu_add_cancel').hide();
+            }
+        },
+        queuecomplete: function(){
+            $('#dailymenu_add').show();
+            $('#dailymenu_add_cancel').show();
+        }
+    });
+    $('#dailymenu_add_cancel').click(function(){
+        var params = {
+            url:'/dailymenu/list',
+            pageno:$('#pageno').val(),
+            trigger:$('#trigger').val(),
+            backbutton_target:true,
+            history_seq:getNewHistorySeq()
+        };
+        window.History.pushState(params, null, '/');
+    });
+});
+</script>
+<h2>給食<span>メニュー内容を作成します。</span></h2>
+<table style='width:940px' id='tb_dailymenu_addform'>
+    <tr>
+        <td width='178px' style='background-color:#f7fed8'><font color='red'>*</font>日付</td>
+        <td style='text-align:left'><input type='text' id='dailymenu_date' style='margin:0px;border-radius:0px;border:1px #abc solid'/></td>
+    </tr>
+    <tr>
+        <td style='background-color:#f7fed8'><font color='red'>*</font>内容</td>
+        <td><textarea name="dailymenu_title" id="dailymenu_title" cols="120" rows="6" wrap="hand" style='width:750px;border:1px #abc solid'></textarea></td>
+    </tr>
+    <tr>
+        <td style='background-color:#f7fed8'><font color='red'>*</font>写真添付<br><div id='warn_msg'>(利用可能な形式：jpg/jpeg/png<br>写真のサイズ：4MB以下<br>同時添付数：1個まで)</div></td>
+        <td>
+            <div id="dropbox">
+                <form action="" class="uploadform dropzone dz-clickable">
+                    <div class="dz-default dz-message">
+                        <span>写真ファイルをDrag & Dropするかここをクリックして下さい。</span>
+                        <br>
+                        <span class="note">(Drag & Drop Images or Click here)</span>
+                    </div>
+                </form>
+            </div>
+        </td>
+    </tr>
+</table>
+<div class="btn_area">
+    <input type="button" id='dailymenu_add' class="btn1 red" value="作成">
+    <input type="button" id='dailymenu_add_cancel' class="btn1 red" value="キャンセル" style='margin-left:10px;'>
+</div>

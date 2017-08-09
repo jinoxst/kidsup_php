@@ -1,0 +1,713 @@
+<style>
+.btn1{
+    width:100px;
+}
+textarea {
+    resize: vertical;
+}
+</style>
+<script>
+$(function(){
+    $('.none_border_bottom_td td').css({'border-bottom':'none'});
+    $('#replyTable:last-child tr:last-child').css({'border-bottom':'none'});
+    $('#noticereply_add').button({icons:{primary:'ui-icon-pencil'}});
+    $('#noticereply_add').click(function(){
+        var contents = $.trim($('#noticereply_contents').val());
+        if(contents == ''){
+            $('#noticereply_contents').val('');
+            $('#noticereply_contents').focus();
+            showCommonAlertDialog('注意','返信内容を入力して下さい。');
+            return;
+        }
+        $("#yes_no_common_alert").html('返信追加しますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/notice/postnoticereply',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            notice_id:'<?php echo $this->detail['id']; ?>',
+                            contents:contents
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    getReplyList('<?php echo $this->reply_pageno;?>');
+                                    $('#noticereply_contents').val('');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('#notice_return').button({icons:{primary:'ui-icon-arrowreturnthick-1-w'}})
+    $('#notice_return').click(function(){
+        var params = {
+            url:'/notice/list',
+            pageno:$('#pageno').val(),
+            trigger:$('#trigger').val(),
+            backbutton_target:true,
+            history_seq:getNewHistorySeq()
+        };
+        window.History.pushState(params, null, '/');
+
+    });
+    $('#notice_delete').button({icons:{primary:'ui-icon-scissors'}});
+    $('#notice_delete').click(function(){
+        $("#yes_no_common_alert").html('削除しますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/notice/delete',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            notice_id:'<?php echo $this->detail['id']; ?>'
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    $('#notice_return').trigger('click');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('#plus_notice_goodcnt').button({icons:{primary:'ui-icon-heart'}});
+    $('#plus_notice_goodcnt').click(function(){
+        $("#yes_no_common_alert").html('いいねしますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/notice/plusnoticegoodcnt',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            notice_id:'<?php echo $this->detail['id']; ?>'
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    showInfoMessage(200,'いいねをしました。',2000,'slow');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('#notice_confrim').button({icons:{primary:'ui-icon-check'}});
+    $('#notice_confrim').click(function(){
+        $("#yes_no_common_alert").html('連絡内容を確認しましたか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/notice/sendnoticeread',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            notice_id:'<?php echo $this->detail['id']; ?>'
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    $('#notice_confrim').hide();
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('#target_read_info_confirm').button({icons:{primary:'ui-icon-contact'}});
+    $('#target_read_info_confirm').click(function(){
+        $.ajax({
+            url: '/notice/notreadmemberlist',
+            type: 'GET',
+            dataType: 'html',
+            data: {
+                notice_id:'<?php echo $this->detail['id']; ?>'
+            },
+            beforeSend: function(xhr){
+                xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+            },
+            error: function(xhr, status, e){
+                console.log(xhr);
+                console.log(status);
+                console.log(e);
+                showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+            },
+            success: function(d){
+                //console.log(d);
+                if(d == _SEAR_){
+                    showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                }else{
+                    $("#one_button_common_alert").html(d);
+                    $("#one_button_common_alert").dialog({
+                        title:'確認',
+                        modal: true,
+                        draggable: false,
+                        closeOnEscape: false,
+                        resizable: false,
+                        height: 'auto',
+                        minHeight: 0,
+                        width: 'auto',
+                        open: function(event, ui) {
+                            setDialogDesign($(this));
+                            $('.ui-dialog-buttonpane').find('button:contains("閉じる")').button({icons: {primary: 'ui-icon-circle-close'}});
+                        },
+                        buttons: {
+                            "閉じる": function() {
+                                $(this).dialog("close");
+                            }
+                        }
+                    });
+                }
+            },
+            complete: function(){}
+        });
+    });
+    $('#add_personal_schedule').button({icons:{primary:'ui-icon-calendar'}});
+    $('#add_personal_schedule').click(function(){
+        $.ajax({
+            url: '/notice/addscheduleform',
+            type: 'GET',
+            dataType: 'html',
+            data: {
+            },
+            beforeSend: function(xhr){
+                xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+            },
+            error: function(xhr, status, e){
+                console.log(xhr);
+                console.log(status);
+                console.log(e);
+                showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+            },
+            success: function(d){
+                if(d == _SEAR_){
+                    showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                }else{
+                    $("#yes_no_common_alert").html(d);
+                    $("#yes_no_common_alert").dialog({
+                        title:'確認',
+                        modal: true,
+                        draggable: false,
+                        closeOnEscape: false,
+                        resizable: false,
+                        height: 'auto',
+                        minHeight: 0,
+                        width: 'auto',
+                        open: function(event, ui) {
+                            setDialogDesign($(this));
+                            $('.ui-dialog-buttonpane').find('button:contains("スケジュール追加")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                            $('.ui-dialog-buttonpane').find('button:contains("閉じる")').button({icons: {primary: 'ui-icon-circle-close'}});
+                            $('.ui-dialog-buttonpane').find('button:contains("スケジュール追加")').focus()
+                        },
+                        buttons: {
+                            "スケジュール追加": function() {
+                                var date = $('#schedule_date_fake').val();
+                                if(date){
+                                    if(date.length != 8){
+                                        showCommonAlertDialog('エラー','日付を確認して下さい。');
+                                        return;
+                                    }
+                                }else{
+                                    showCommonAlertDialog('エラー','日付を確認して下さい。');
+                                    return;
+                                }
+                                $(this).dialog("close");
+                                $.ajax({
+                                    url: '/notice/addscheduledata',
+                                    type: 'GET',
+                                    dataType: 'json',
+                                    data: {
+                                        notice_id:'<?php echo $this->detail['id']; ?>',
+                                        date: date
+                                    },
+                                    beforeSend: function(xhr){
+                                        xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                                    },
+                                    error: function(xhr, status, e){
+                                        console.log(xhr);
+                                        console.log(status);
+                                        console.log(e);
+                                        showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                                    },
+                                    success: function(d){
+                                        console.log(d);
+                                        if(d.status == _SEAR_){
+                                            showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                                        }else{
+                                            if(d.status == '0'){
+                                                showInfoMessage(300,'スケジュールに追加しました。',2000,'slow');
+                                            }else{
+                                                showCommonAlertDialog('エラー',d.message);
+                                            }
+                                        }
+                                    },
+                                    complete: function(){}
+                                });
+                            },
+                            "閉じる": function() {
+                                $(this).dialog("close");
+                            }
+                        }
+                    });
+                    $('#schedule_date').val(getDateYYYYMMDD());
+                }
+            },
+            complete: function(){}
+        });
+    });
+    $('.delete_reply').button({icons:{primary:'ui-icon-trash'}});
+    $('#delete_reply').click(function(){
+        var reply_id = $(this).siblings('#reply_id').val();
+        $("#yes_no_common_alert").html('返信を削除しますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/notice/deletenoticereply',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            notice_id:'<?php echo $this->detail['id']; ?>',
+                            reply_id:reply_id
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    getReplyList('<?php echo $this->reply_pageno;?>');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('#update_form').button({icons:{primary:'ui-icon-extlink'}});
+    $('#update_form').click(function(){
+        var params = {
+            url:'/notice/updateform',
+            notice_id:'<?php echo $this->detail['id']; ?>',
+            notice_confirm:'<?php echo $this->notice_confirm;?>',
+            target_read_info:'<?php echo $this->target_read_info;?>',
+            reply_pageno:1,
+            reply_cnt:'<?php echo $this->reply_cnt;?>',
+            backbutton_target:true,
+            history_seq:getNewHistorySeq()
+        };
+        window.History.pushState(params, null, '/');
+    });
+    $('.fancybox-album').fancybox({
+        helpers : {
+            title : {
+                type : 'inside'
+            }
+        }
+    });
+    $('.btn_menu').on('click', function(e) {
+        var offset = $(this).offset();
+        var x = offset.left + 32;
+        var y = e.clientY + $(window).scrollTop();
+        $(this).contextMenu({x: x, y: y});
+    });
+    <?php
+    $img_cnt = 0;
+    for($i=1;$i<=10;$i++){
+        if($this->detail['img'.$i] != ''){
+            $img_cnt++;
+            if($this->loginedInfo['member_type'] == '3'){
+                $filename = $this->detail['img'.$i.'_only_filename'];
+?>
+    $.contextMenu({
+        selector: '.cls_<?php echo $filename; ?>',
+        trigger: 'none',
+        items: {
+            "addToAlbum": {
+                name: "この写真をアルバムに追加する", 
+                icon: "album",
+                callback: function(key, options) {
+                    var filename = $(this).children('input[type=hidden][name=filename]').val();
+                    var params = {
+                        thread_id:'<?php echo $this->detail['id']; ?>',
+                        thread_type:'1',
+                        filename:filename
+                    };
+                    addAlbumDataForAjax(params);
+                }
+            }
+        }
+    });
+<?php
+            }
+        }
+    }
+?>
+});
+function getReplyList(reply_pageno){
+    $.ajax({
+        url: '/notice/replylist',
+        type: 'GET',
+        dataType: 'html',
+        data: {
+            notice_id:'<?php echo $this->detail['id']; ?>',
+            reply_pageno:reply_pageno
+        },
+        async: true,
+        beforeSend: function(xhr){
+            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+        },
+        success: function(d){
+            if(d == _SEAR_){
+                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+            }else{
+                $('#reply_list').html(d);
+                $('#tr_reply_list').show();
+                $('.none_border_bottom_td td').css({'border-bottom':'none'});
+                $('#replyTable:last-child tr:last-child').css({'border-bottom':'none'});
+                if($('#reply_cnt').val() == '0'){
+                    $('#tr_reply_list').hide();
+                }
+            }
+        },
+        complete: function(){}
+    });
+}
+function goNextPageGroup(){
+    var reply_pageno = parseInt('<?php echo $this->reply_pageno;?>');
+    reply_pageno++;
+    getReplyList(reply_pageno);
+}
+function goPrevPageGroup(){
+    var reply_pageno = parseInt('<?php echo $this->reply_pageno;?>');
+    reply_pageno--;
+    getReplyList(reply_pageno);
+}
+</script>
+<?php
+$info_msg = 'お知らせ内容の詳細です。';
+if($img_cnt >= 3){
+    $info_msg .= '(写真をクリックしマウススクロールでも楽しめます。)';
+}
+?>
+<h2>お知らせ<span><?php echo $info_msg;?></span></h2>
+<table style='width:940px'>
+    <tr>
+        <td width='170px' style='background-color:#f7fed8'>内容</td>
+        <td>
+            <table class='none_border_bottom_td'>
+                <tr>
+                    <td width='60px'><img src='<?php echo $this->detail["writer_img"] ?>' width='60px'></td>
+                    <td style='text-align:left'>
+                        <?php echo $this->detail['writer_name'] ?>
+                        <br><?php echo $this->detail['writer_type_desc'] ?>
+                        <br><?php echo $this->detail['createtime'] ?>
+                    </td>
+                    <td style='text-align:right'>
+<?php 
+if($this->target_read_info_plus != ''){    
+    echo $this->target_read_info_plus.' <button id="target_read_info_confirm">確認</button>';
+
+}
+?>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan='3' style='text-align:left'>
+<?php
+    echo '<font style="font-weight:bold;">'.$this->detail['title'].'</font>';
+    echo '<br><br>';
+    echo $this->detail['contents'];
+    $image_rendering_data = '';
+    for($i=1;$i<=10;$i++){
+        if($this->detail['img'.$i] != ''){
+            if($this->loginedInfo['member_type'] == '3'){
+                $image_rendering_data .= "<div class='cls_".$this->detail['img'.$i.'_only_filename']."' style='position:relative'>";
+                $image_rendering_data .= "<a class='fancybox-album' data-fancybox-group='gallery' href='".$this->detail['img'.$i]."' title=''><img src='".$this->detail['img'.$i]."' width='".$this->detail['img'.$i.'w']."' height='".$this->detail['img'.$i.'h']."'></a>";
+                $image_rendering_data .= "<img src='/img/icon/menu.png' style='position:absolute;top:10px;left:10px;cursor:pointer;' class='btn_menu'/>";
+                $image_rendering_data .= "<input type='hidden' name='filename' value='".$this->detail['img'.$i.'_filename']."'/>";
+                $image_rendering_data .= "</div>";
+            }else{
+                $image_rendering_data .= "<div class='cls_".$this->detail['img'.$i.'_only_filename']."' style='position:relative'>";
+                $image_rendering_data .= "<a class='fancybox-album' data-fancybox-group='gallery' href='".$this->detail['img'.$i]."' title=''><img src='".$this->detail['img'.$i]."' width='".$this->detail['img'.$i.'w']."' height='".$this->detail['img'.$i.'h']."'></a>";
+                $image_rendering_data .= "</div>";
+            }
+        }
+    }
+    echo $image_rendering_data;
+?>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+<?php
+if(count($this->replyList) > 0 ){
+?>
+    <tr id='tr_reply_list'>
+        <td style='background-color:#f7fed8'>返信リスト</td>
+        <td>
+            <div id='reply_list'>
+            <input type='hidden' name='reply_cnt' id='reply_cnt' value='<?php echo $this->reply_cnt;?>'/>
+<?php
+    foreach ($this->replyList as $reply) {
+?>
+            <table class='none_border_bottom_td' id='replyTable'>
+                <tr>
+                    <td rowspan='2' width='32px'><img src='/img/icon/reply.png'/></td>
+                    <td width='60px'><img src='<?php echo $reply["img"] ?>' width='60px'></td>
+                    <td style='text-align:left'><?php echo $reply['writer_name'] ?><br><?php echo $reply['member_type_desc'] ?><br><?php echo $reply['createtime'] ?></td>
+                    <td style='text-align:right'><div class='valign_middle'>
+                        <?php if($reply['member_id'] == $this->loginedInfo['member_id']){?><button class='delete_reply'>削除</button><?php }?>
+                        <input type='hidden' name='reply_id' id='reply_id' value='<?php echo $reply["reply_id"];?>'/>
+                    </div></td>
+                </tr>
+                <tr style='border-bottom:1px #abc solid;'>
+                    <td colspan='3' style='text-align:left'><?php echo $reply['contents'] ?></td>
+                </tr>
+            </table>
+<?php
+    }
+    if($this->pagenator['show'] == '1'){
+?>
+            <table class='none_border_bottom_td'>
+                <tr class="page_control">
+                    <td colspan='2'>
+<?php
+        if($this->pagenator['preGroupFlag'] == '1'){
+?>
+                        <a href='javascript:goPrevPageGroup();'>前へ</a>
+<?php
+        }else{
+?>
+                        <p>前へ</p>
+<?php
+        }
+        if($this->pagenator['nextGroupFlag'] == '1'){
+?>
+                        <a href='javascript:goNextPageGroup();'>次へ</a>
+<?php
+        }else{
+?>
+                        <p>次へ</p>
+<?php
+        }
+?>
+                    </td>
+                </tr>
+            </table>
+<?php
+    }
+?>
+            </div>
+        </td>
+    </tr>
+<?php
+}else{
+?>
+    <tr style='display:none' id='tr_reply_list'>
+        <td style='background-color:#f7fed8'>返信リスト</td>
+        <td>
+            <div id='reply_list'></div>
+        </td>
+    </tr>
+<?php
+}
+?>
+    <tr>
+        <td style='background-color:#f7fed8'>返信追加</td>
+        <td style='text-align:left;'>
+            <div>
+                <div class='valign_middle'>
+                    <textarea name="noticereply_contents" id="noticereply_contents" cols="100" rows="2" wrap="hand" style='width:450px;'></textarea>
+                </div>
+                <div class='valign_middle'>
+                    <button id='noticereply_add'>追加</button>
+                </div>
+            </div>
+        </td>
+    </tr>
+</table>
+<div class="btn_area">
+    <?php if($this->loginedInfo['member_type'] == '3'){?><button id='plus_notice_goodcnt'>いいね</button><?php }?>
+    <?php if($this->loginedInfo['member_type'] == '3'){?><button id='add_personal_schedule'>スケジュール追加</button><?php }?>
+    <?php if($this->notice_confirm == '1'){?><button id='notice_confrim'>内容確認</button><?php }?>
+    <?php if($this->deletableNotice){?><button id='update_form'>修正</button><?php }?>
+    <?php if($this->deletableNotice){?><button id='notice_delete'>削除</button><?php }?>
+    <button id='notice_return'>戻る</button>
+</div>

@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KidsUp</title>
+    <style>
+    @import "/css/style_mail.css";
+    </style>
+    <link rel="shortcut icon" href="/img/icon/favicon.ico">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/icon/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/img/icon/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/img/icon/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="/img/icon/apple-touch-icon-57-precomposed.png">
+</head>
+<body>
+<table id='base' background='/img/bg_body.png'>
+<tr>
+    <td valign='top'>
+        <div id="outterwrap">
+            <div id="innerwrap">
+                <header>
+                    <h1><img src="/img/logo_slim.png">KidsUp</h1>
+                </header>
+                <div id="main">
+                    <div id="contents">
+                        <?php if($this->data['status'] != '0'){ ?>
+                            <?php echo $this->data['message']; ?>
+                        <?php }else{ ?>
+                            <?php echo $this->data['contents']; ?>
+                        <?php } ?>
+                    </div><!-- contents -->
+                </div><!-- main -->
+            </div><!-- innerwrapper -->
+        </div><!-- outterwrapper -->
+    <td>
+</tr>
+<tr height='30px' bgcolor='#789'>
+    <td align='center'>
+        <img src='/img/logo_footer.jpg'/>
+    </td>
+</tr>
+</table>
+</body>
+</html>

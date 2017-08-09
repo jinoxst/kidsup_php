@@ -1,0 +1,217 @@
+<style>
+textarea {
+    resize: vertical;
+}
+div.btn_area{
+    width:250px;
+}
+.ui-datepicker {font-size: 12px !important;}
+</style>
+<script>
+$(function(){
+    $('#address').on('keypress', function(e){
+        if(e.keyCode == 13 && $('#address').val() && $.trim($('#address').val()) != ''){
+            showGMap();
+            return false;
+        }
+    });
+    $('#event_return').click(function(){
+        var params = {
+            url:'/event/detail',
+            event_id:'<?php echo $this->detail['id']; ?>',
+            event_confirm:'<?php echo $this->event_confirm;?>',
+            target_read_info:'<?php echo $this->target_read_info;?>',
+            reply_pageno:1,
+            reply_cnt:'<?php echo $this->reply_cnt;?>',
+            backbutton_target:true,
+            history_seq:getNewHistorySeq()
+        };
+        window.History.pushState(params, null, '/');
+
+    });
+    $('#geocoding').click(function(e){
+        e.preventDefault();
+        if($.trim($('#address').val())){
+            showGMap();
+        }else{
+            $('#address').focus();
+            showCommonAlertDialog('注意','場所を入力して下さい。');
+            return;
+        }
+    });
+    $('#event_edit_confirm').click(function(){
+        if($.trim($('#event_title').val()) == ''){
+            $('#event_title').val('');
+            $('#event_title').focus();
+            showCommonAlertDialog('注意','行事のタイトルを入力して下さい。');
+            return;
+        }
+        if($.trim($('#event_contents').val()) == ''){
+            $('#event_contents').val('');
+            $('#event_contents').focus();
+            showCommonAlertDialog('注意','行事の内容を入力して下さい。');
+            return;
+        }
+
+        var date = $.trim($('#event_date').val());
+        if(date){
+            if(date.length != 8){
+                $('#event_date').focus();
+                showCommonAlertDialog('エラー','日付を確認して下さい。');
+                return;
+            }
+        }
+
+        $("#yes_no_common_alert").html('行事を修正しますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/event/updatecontents',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            event_id:'<?php echo $this->detail['id']; ?>',
+                            class_id:'<?php echo $this->detail['class_id']; ?>',
+                            title:$.trim($('#event_title').val()),
+                            contents:$.trim($('#event_contents').val()),
+                            address:$('#address').val(),
+                            date:date
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    $('#event_return').trigger('click');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    if($.trim('<?php echo $this->detail["address"]; ?>')){
+        GMaps.geocode({
+            address: $('#address').val().trim(),
+            callback: function(results, status){
+                if(status == 'OK'){
+                    var latlng = results[0].geometry.location;
+                    $('#map').slideDown('fast', function(){
+                        var map = new GMaps({
+                            el: '#map',
+                            lat: latlng.lat(),
+                            lng: latlng.lng()
+                        });
+                        map.setCenter(latlng.lat(), latlng.lng());
+                        map.addMarker({
+                            lat: latlng.lat(),
+                            lng: latlng.lng()
+                        });
+                    });
+                }else{
+                    if($('#map').is(':visible')){
+                        showInfoMessage(300,'地図上では確認できませんでした。',2000,'slow');
+                        $('#map').slideUp();
+                    }
+                }
+            }
+        });
+    }
+    $("#event_date").datepicker({
+        minDate: 0,
+        defaultDate: new Date(),
+        beforeShow: function() {
+        }
+    });
+});
+function showGMap(){
+    GMaps.geocode({
+        address: $('#address').val().trim(),
+        callback: function(results, status){
+            if(status == 'OK'){
+                var latlng = results[0].geometry.location;
+                $('#map').slideDown('fast', function(){
+                    var map = new GMaps({
+                        el: '#map',
+                        lat: latlng.lat(),
+                        lng: latlng.lng()
+                    });
+                    map.setCenter(latlng.lat(), latlng.lng());
+                    map.addMarker({
+                        lat: latlng.lat(),
+                        lng: latlng.lng()
+                    });
+                });
+            }else{
+                showInfoMessage(300,'地図上では確認できませんでした。',2000,'slow');
+                if($('#map').is(':visible')){
+                    $('#map').slideUp();
+                }
+            }
+        }
+    });
+}
+</script>
+
+<h2>行事<span>行事の修正が出来ます。</span></h2>
+<table style='width:940px' id='picture_add_form'>
+    <tr>
+        <td width='170px' style='background-color:#f7fed8'>組</td>
+        <td style='text-align:left'><?php echo $this->detail['class_name'];?></td>
+    </tr>
+    <tr>
+        <td width='170px' style='background-color:#f7fed8'><font color='red'>*</font>タイトル</td>
+        <td style='text-align:left'><input type='text' name="event_title" id="event_title" style='margin:0px;width:400px;border-radius:0px;border:1px #abc solid' value="<?php echo $this->detail['title'];?>"/></td>
+    </tr>
+    <tr>
+        <td width='170px' style='background-color:#f7fed8'><font color='red'>*</font>内容</td>
+        <td><textarea name="event_contents" id="event_contents" cols="120" rows="6" wrap="hand" style='width:750px'><?php echo $this->detail['contents']; ?></textarea></td>
+    </tr>
+    <tr>
+        <td style='width=170px;background-color:#f7fed8'>場所</td>
+        <td style='text-align:left'>
+            <input type='text' id='address' style='width:400px;margin:0px;border-radius:0px;border:1px #abc solid;float:left' value='<?php echo $this->detail["address"]; ?>'/><input type="button" id='geocoding' class="btn1 blue" value="地図で確認" style='float:left;margin-left:5px'>
+            <div id="map" style="width:752px;height:400px;margin-top:5px;clear:both;display:none;"></div>
+        </td>
+    </tr>
+    <tr>
+        <td style='width=170px;background-color:#f7fed8'>日付</td>
+        <td style='text-align:left'><input type='text' id='event_date' style='margin:0px;border-radius:0px;border:1px #abc solid' value='<?php echo $this->detail["date"]; ?>'/></td>
+    </tr>
+</table>
+<div class="btn_area">
+    <input type="button" id='event_edit_confirm' class="btn1 red" value="修正する" style='margin-left:10px;'>
+    <input type="button" id='event_return' class="btn1 red" value="戻る" style='margin-left:10px;'>
+</div>

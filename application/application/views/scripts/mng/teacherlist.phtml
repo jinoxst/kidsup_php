@@ -1,0 +1,295 @@
+<style>
+.table_picture{
+    background-color:#ffffff;
+}
+.td_picture {
+    width:60px;
+    border-bottom: none;
+}
+.typeDiv{
+    background-color:#FFC0CB;
+    color:#800080;
+    border-radius:4px;
+}
+.td_data {
+    border-bottom: none;
+}
+</style>
+<script>
+$(function(){
+    $('.table_picture td').css({'border-bottom':'none'});
+    $('.table_data td').css({'border-bottom':'none'});
+    $('.btn_chgcls').button({icons:{primary:'ui-icon-circle-check'}});
+    $('.btn_chgcls').click(function(){
+        var member_id = $(this).siblings('input[type=hidden][name=member_id]').val();
+        var classInfo = $(this).siblings('input[type=hidden][name=class_info]').val();
+        var classStrArr = classInfo.split('::');
+        var classArr = [];
+        classStrArr.forEach(function(e, i){
+            var clsArr = e.split('||');
+            classArr.push({class_id:clsArr[0]});
+        });
+        $("#all_class_list").dialog({
+            title:'組リスト',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("組の変更")').button({icons: {primary: 'ui-icon-shuffle'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+                $('#tbl_all_class_list td p').each(function(){
+                    $(this).children('img[src$="/img/icon/check.png"]').hide();
+                    var that = $(this);
+                    var class_id = that.children('input[type=hidden][name=class_id]').val();
+                    classArr.forEach(function(e,i){
+                        if(class_id == e.class_id){
+                            that.children('img[src$="/img/icon/check.png"]').show();
+                        }
+                    });
+                });
+            },
+            buttons: {
+                "組の変更": function() {
+                    var class_id_str = '';
+                    var selected_class_arr = [];
+                    $('#tbl_all_class_list td p').each(function(){
+                        var imgObj = $(this).children('img[src$="/img/icon/check.png"]');
+                        if(imgObj.is(':visible')){
+                            class_id = imgObj.siblings('input[type=hidden][name=class_id]').val();
+                            selected_class_arr.push({class_id:class_id});
+                            class_id_str += class_id + ',';
+                        }
+                    });
+                    if(selected_class_arr.length == 0){
+                        showInfoMessage(300,'変更する組を一つ以上選択して下さい。',2000,'slow');
+                        return;
+                    }
+                    if(classArr.length == selected_class_arr.length){
+                        var dup_cnt = 0;
+                        for(var i=0;i<selected_class_arr.length;i++){
+                            for(var j=0;j<classArr.length;j++){
+                                if(selected_class_arr[i].class_id == classArr[j].class_id){
+                                    dup_cnt++;
+                                }
+                            }
+                        }
+
+                        if(dup_cnt == classArr.length){
+                            showInfoMessage(300,'同じ組を設定するのは出来ません。',2000,'slow');
+                            return;
+                        }
+                    }
+                    class_id_str = class_id_str.substr(0, class_id_str.length-1);
+
+                    $("#yes_no_common_alert").html('組を変更しますか');
+                    $("#yes_no_common_alert").dialog({
+                        title:'確認',
+                        modal: true,
+                        draggable: false,
+                        closeOnEscape: false,
+                        resizable: false,
+                        height: 'auto',
+                        minHeight: 0,
+                        width: 'auto',
+                        open: function(event, ui) {
+                            setDialogDesign($(this));
+                            $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                            $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+                        },
+                        buttons: {
+                            "はい": function() {
+                                $(this).dialog("close");
+                                $.ajax({
+                                    url: '/mng/changeteacherclass',
+                                    type: 'GET',
+                                    dataType: 'json',
+                                    data: {                                        
+                                        member_id:member_id,
+                                        class_id:class_id_str
+                                    },
+                                    beforeSend: function(xhr){
+                                        xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                                    },
+                                    error: function(xhr, status, e){
+                                        console.log(xhr);
+                                        console.log(status);
+                                        console.log(e);
+                                        showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                                    },
+                                    success: function(d){
+                                        console.log(d);
+                                        if(d.status == _SEAR_){
+                                            showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                                        }else{
+                                            if(d.status == '0'){
+                                                getList();
+                                            }else{
+                                                showCommonAlertDialog('エラー',d.message);
+                                            }
+                                        }
+                                    },
+                                    complete: function(){
+                                        $("#all_class_list").dialog('destroy');
+                                    }
+                                });
+                            },
+                            "キャンセル": function() {
+                                $(this).dialog("close");
+                            }
+                        }
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog('destroy');
+                    $('#cls_div_addform').find('input[type=text][name=class_name]').val('');
+                    $('#cls_div_addform').find('input[type=text][name=class_desc]').val('');
+                }
+            }
+        });
+    });
+    $('.btn_voidApproval').button({icons:{primary:'ui-icon-unlocked'}});
+    $('.btn_voidApproval').click(function(){
+        var member_id = $(this).siblings('input[type=hidden][name=member_id]').val();
+        $("#yes_no_common_alert").html('未承認の状態に変えますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/mng/voidteacherapproval',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            member_id:member_id
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    getList();
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){                            
+                        }
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('#tbl_all_class_list td').click(function(){
+        var img = $(this).find('img[src$="/img/icon/check.png"]');
+        img.toggle();
+    });
+});
+function getList(){
+    var params = {
+        url:'/mng/teacherlist',
+        backbutton_target:true,
+        history_seq:getNewHistorySeq(),
+        leftmenu:'mngteacher'
+    };
+    window.History.pushState(params, null, '/');
+}
+</script>
+<h2>教師の管理<span></span></h2>
+<table>
+<?php
+if(count($this->list) > 0 ){
+    foreach ($this->list as $data) {
+?>
+    <tr>
+        <td class='td_picture'>
+            <table class='table_picture'>
+                <tr>
+                    <td width='65px'>
+                        <p style='position:relative'>
+                            <img src='<?php echo $data['img']; ?>' style='width:60px;height:67px;'/>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+        <td class='td_data'>
+            <table class='table_data'>
+                <tr>
+                    <td style='background-color:#f7fed8' width='125px'>名前</td>
+                    <td style='text-align:left'><?php echo $data['name'];?></td>
+                </tr>
+                <tr>
+                    <td style='background-color:#f7fed8'>組</td>
+                    <td style='text-align:left'><?php echo $data['class_str'];?></td>
+                </tr>
+                <tr>
+                    <td style='background-color:#f7fed8'>電話番号</td>
+                    <td style='text-align:left'><?php echo $data['phonenum'];?></td>
+                </tr>
+            </table>
+        </td>
+        <td width='200px'>
+            <button class='btn_chgcls'>組の変更</button>
+            <button class='btn_voidApproval'>オフに</button>
+            <input type='hidden' name='member_id' value='<?php echo $data["id"]?>'/>
+            <input type='hidden' name='class_info' value='<?php echo $data["class_info"]?>'/>
+        </td>
+    </tr>
+<?php
+    }
+}
+?>    
+</table>
+<div id='all_class_list' style='display:none'>
+    <div style='width:300px;height:450px;overflow-x:hidden;overflow-y:auto;'>
+    <table id='tbl_all_class_list' style='width:100%;'>
+<?php 
+foreach($this->classlist as $class){
+?>
+        <tr>
+            <td style='height:40px;text-align:left;padding-left:20px;border-bottom:1px solid #abc;border-top:1px solid #abc'>
+                <p style='position:relative;'>
+                    <?php echo $class['name'];?> [<?php echo $class['desc'];?>]
+                    <img src='/img/icon/check.png' style='width:52px;height:52px;position:absolute;top:-10px;left:230px;display:none'/>
+                    <input type='hidden' name='class_id' value='<?php echo $class["id"];?>'/>
+                </p>
+            </td>
+        </tr>
+<?php 
+}
+?>
+    </table>
+    </div>
+</div>

@@ -1,0 +1,209 @@
+<style>
+#outterDiv {
+    width:930px;
+    overflow-x:hidden;
+    overflow-y:hidden;
+    text-align:left;
+}
+#innerDiv {
+    width:160px;
+    text-align:center;
+    padding:10px;
+    margin:2px 0px;
+    display:inline-block;
+    border-radius:8px;
+    background-color:#FFDEAD;
+    position:relative;
+}
+</style>
+<script>
+$(function(){
+    $('.album_delete').click(function(){
+        var idx = $(this).siblings('input[type=hidden][name=idx]').val();
+        $("#yes_no_common_alert").html('写真を削除しますか？');
+        $("#yes_no_common_alert").dialog({
+            title:'確認',
+            modal: true,
+            draggable: false,
+            closeOnEscape: false,
+            resizable: false,
+            height: 'auto',
+            minHeight: 0,
+            width: 'auto',
+            open: function(event, ui) {
+                setDialogDesign($(this));
+                $('.ui-dialog-buttonpane').find('button:contains("はい")').button({icons: {primary: 'ui-icon-circle-triangle-e'}});
+                $('.ui-dialog-buttonpane').find('button:contains("キャンセル")').button({icons: {primary: 'ui-icon-circle-close'}});
+            },
+            buttons: {
+                "はい": function() {
+                    $(this).dialog("close");
+                    $.ajax({
+                        url: '/album/delete',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            idx:idx
+                        },
+                        beforeSend: function(xhr){
+                            xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+                        },
+                        error: function(xhr, status, e){
+                            console.log(xhr);
+                            console.log(status);
+                            console.log(e);
+                            showCommonAlertDialog('エラー','システムエラーが発生しました。しばらくしてからやり直して下さい。');
+                        },
+                        success: function(d){
+                            console.log(d);
+                            if(d.status == _SEAR_){
+                                showCommonAlertDialog('エラー','セッション終了です。再びログインして下さい。','/login');
+                            }else{
+                                if(d.status == '0'){
+                                    var params = {
+                                        pageno:$('#pageno').val(),
+                                        trigger:$('#trigger').val(),
+                                        backbutton_target:true,
+                                        history_seq:getNewHistorySeq()
+                                    }
+                                    loadAjaxPage(params, '/album/list');
+                                }else{
+                                    showCommonAlertDialog('エラー',d.message);
+                                }
+                            }
+                        },
+                        complete: function(){}
+                    });
+                },
+                "キャンセル": function() {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    });
+    $('#trigger').val('pageno');
+    $('#pageno').val('<?php echo $this->pageno;?>');
+    $('.fancybox-album').fancybox({
+        helpers : {
+            title : {
+                type : 'inside'
+            }
+        }
+    });
+});
+function goFirstPage(){
+    $('#pageno').val(1);
+    getDailymenuList();
+}
+function getListByPageno(pageno){
+    $('#pageno').val(pageno);
+    getDailymenuList();
+}
+function goNextPageGroup(){
+    $('#trigger').val('nextgroup');
+    getDailymenuList();
+}
+function goPrevPageGroup(){
+    $('#trigger').val('prevgroup');
+    getDailymenuList();
+}
+function goLastPage(){
+    $('#trigger').val('lastpageno');
+    getDailymenuList();
+}
+function getDailymenuList(){
+    var params = {
+        url:'/album/list',
+        pageno:$('#pageno').val(),
+        trigger:$('#trigger').val(),
+        backbutton_target:true,
+        history_seq:getNewHistorySeq()
+    };
+    window.History.pushState(params, null, '/');
+}
+</script>
+<?php
+$info_msg = '';
+if(count($this->list) >= 3){
+    $info_msg = '写真をクリックしマウススクロールでも楽しめます。';
+}
+?>
+<h2>アルバム<span><?php echo $info_msg;?></span></h2>
+<?php 
+if(count($this->list) > 0){
+?>
+<table id="tb_album">
+    <tr>
+        <td>
+            <div id='outterDiv'>
+<?php
+        foreach ($this->list as $data) {
+?>
+                    <div id='innerDiv'>
+                        <input type='hidden' name='idx' value='<?php echo $data["idx"]; ?>' />
+                        <a class="fancybox-album" data-fancybox-group="gallery" href="<?php echo $data["chg_img"]; ?>" title='<?php echo $data["title"];?>'><img src='<?php echo $data["thm_img"] ?>' style='width:160px;height:160px;'/></a>
+                        <img src='/img/icon/trash_can.png' style='position:absolute;top:135px;left:138px;cursor:pointer;' class='album_delete'/>
+                    </div>
+<?php
+        }
+?>
+            </div>
+        </td>
+    </tr>
+    <tr class="page_control">
+        <td colspan="6">
+<?php 
+    if($this->pagenator['firstPageFlag'] == 0){
+?>
+            <p>最初</p>
+<?php 
+    }else{
+?>
+            <a href='javascript:goFirstPage();'>最初</a>
+<?php 
+    }
+    if($this->pagenator['preGroupFlag'] == 0){
+?>
+            <p>前へ</p>
+<?php
+    }else{
+?>
+            <a href='javascript:goPrevPageGroup();'>前へ</a>
+<?php
+    }
+    foreach($this->pagenator['pagenoArr'] as $pno){
+        if($pno == $this->pageno){
+?>
+                <p id="here"><?php echo $pno;?></p> 
+<?php 
+        }else{
+?>
+                <a href="javascript:getListByPageno(<?php echo $pno;?>)"><?php echo $pno;?></a> 
+<?php
+        }
+    }
+    if($this->pagenator['nextGroupFlag'] == 0){
+?>
+            <p>次へ</p>
+<?php 
+    }else{
+?>
+            <a href='javascript:goNextPageGroup();'>次へ</a>
+<?php 
+    }
+    if($this->pagenator['lastPageFlag'] == 0){
+?>
+            <p>最後</p>
+<?php 
+    }else{
+?>
+            <a href='javascript:goLastPage();'>最後</a>
+<?php 
+    }
+?>
+        </td>
+    </tr>
+<?php
+}
+?>    
+</table>
